@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_KEY = "rechnungsCockpit_v3";
   const THEME_KEY = "cockpit_theme";
 
-  // Elemente
+  // Formular-Elemente
   const form = document.getElementById("invoiceForm");
   const numberInput = document.getElementById("invoiceNumber");
   const supplierInput = document.getElementById("supplier");
@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearFormBtn = document.getElementById("clearFormBtn");
   const saveBtn = document.getElementById("saveBtn");
 
+  // Tabelle & Filter
   const tableBody = document.getElementById("invoiceTableBody");
   const emptyState = document.getElementById("emptyState");
   const searchInput = document.getElementById("searchInput");
@@ -22,15 +23,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const monthFilter = document.getElementById("monthFilter");
   const yearFilter = document.getElementById("yearFilter");
 
+  // Dashboard
   const supplierCardsContainer = document.getElementById("supplierCards");
   const sumOpenEl = document.getElementById("sumOpen");
   const sumOverdueEl = document.getElementById("sumOverdue");
   const sumSkontoEl = document.getElementById("sumSkonto");
   const supplierDatalist = document.getElementById("supplierDatalist");
 
+  // Theme
   const themeToggle = document.getElementById("themeToggle");
 
-  // Zustände
+  // State
   let invoices = loadInvoices();
   let currentFilter = "open";
   let currentSearch = "";
@@ -41,13 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
   let sortDir = 1;
   let editId = null;
 
-  // INITIAL
+  // INIT
   initTheme();
   initDateDefaults();
   attachEvents();
   renderAll();
 
-  // DARK/LIGHT
+  // THEME ------------------------------------------------------------------
+
   function initTheme() {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved === "dark") {
@@ -58,13 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // HEUTE als Default
+  // Default-Datum = heute
   function initDateDefaults() {
     const today = new Date().toISOString().slice(0, 10);
     dueDateInput.value = today;
   }
 
-  // EVENT HANDLER
   function attachEvents() {
     themeToggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
@@ -148,11 +151,17 @@ document.addEventListener("DOMContentLoaded", () => {
       );
   }
 
-  // SPEICHERN / BEARBEITEN
+  // FORM SPEICHERN ---------------------------------------------------------
+
   function handleSave(e) {
     e.preventDefault();
 
-    let supplier = supplierInput.value.trim().toUpperCase();
+    let supplier = supplierInput.value.trim();
+    if (!supplier) {
+      alert("Bitte einen Lieferanten eingeben.");
+      return;
+    }
+    supplier = supplier.toUpperCase(); // Autokorrektur
 
     const number = numberInput.value.trim();
     const amount = parseFloat(amountInput.value);
@@ -163,8 +172,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const skontoDate = skontoDateInput.value || null;
     const note = noteInput.value.trim();
 
-    if (!number || !supplier || !dueDate || isNaN(amount)) {
-      alert("Bitte alle Pflichtfelder ausfüllen.");
+    if (!number || !dueDate || isNaN(amount)) {
+      alert("Bitte Rechnungsnummer, Betrag und Fälligkeitsdatum ausfüllen.");
       return;
     }
 
@@ -180,7 +189,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (editId) {
       const idx = invoices.findIndex((i) => i.id === editId);
-      invoices[idx] = { ...invoices[idx], ...base };
+      if (idx !== -1) {
+        invoices[idx] = { ...invoices[idx], ...base };
+      }
       editId = null;
       saveBtn.textContent = "Rechnung speichern";
       clearFormBtn.textContent = "Felder leeren";
@@ -200,7 +211,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
-  // STORAGE
+  // STORAGE -----------------------------------------------------------------
+
   function loadInvoices() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -214,7 +226,8 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
   }
 
-  // BEARBEITEN
+  // EDIT / DELETE / PAID ----------------------------------------------------
+
   function startEdit(id) {
     const inv = invoices.find((i) => i.id === id);
     if (!inv) return;
@@ -250,7 +263,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
-  // SKONTO
+  // SKONTO ------------------------------------------------------------------
+
   function updateSkontoInfo() {
     const amount = parseFloat(amountInput.value);
     const percent = parseFloat(skontoPercentInput.value || "0");
@@ -273,7 +287,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return inv.amount * (inv.skontoPercent / 100);
   }
 
-  // STATUS-BERECHNUNG
+  // STATUS ------------------------------------------------------------------
+
   function getStatus(inv) {
     const today = toDate(new Date());
     const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
@@ -281,13 +296,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (inv.paid) return { type: "paid", label: "Bezahlt" };
     if (due && due < today) return { type: "overdue", label: "Überfällig" };
-    if (due && +due === +today) return { type: "dueToday", label: "Heute fällig" };
-    if (sk && today <= sk) return { type: "skonto", label: "Skonto-Phase" };
+    if (due && +due === +today)
+      return { type: "open", label: "Heute fällig" }; // Typ bleibt "open"
+    if (sk && today <= sk)
+      return { type: "skonto", label: "Skonto-Phase" };
 
     return { type: "open", label: "Offen" };
   }
 
-  // FILTER 
+  // FILTER & SORT -----------------------------------------------------------
+
   function getFilteredInvoices() {
     return invoices.filter((inv) => {
       const status = getStatus(inv);
@@ -315,7 +333,6 @@ document.addEventListener("DOMContentLoaded", () => {
           (inv.supplier || "").toLowerCase() +
           " " +
           (inv.note || "").toLowerCase();
-
         if (!haystack.includes(currentSearch)) return false;
       }
 
@@ -323,13 +340,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // SORTIEREN
   function sortInvoices(list) {
     return [...list].sort((a, b) => {
       const dir = sortDir;
       let va, vb;
 
       switch (sortKey) {
+        case "status":
+          va = getStatus(a).type;
+          vb = getStatus(b).type;
+          break;
         case "number":
           va = a.number.toLowerCase();
           vb = b.number.toLowerCase();
@@ -350,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
           va = calcSkontoAmount(a);
           vb = calcSkontoAmount(b);
           break;
-        default:
+        default: // dueDate
           va = new Date(a.dueDate).getTime();
           vb = new Date(b.dueDate).getTime();
       }
@@ -359,7 +379,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // RENDER ALL
+  // RENDER ------------------------------------------------------------------
+
   function renderAll() {
     renderFiltersMonthYear();
     renderTable();
@@ -368,7 +389,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSupplierDatalist();
   }
 
-  // TABELLE
   function renderTable() {
     const data = sortInvoices(getFilteredInvoices());
 
@@ -386,12 +406,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const skAmount = calcSkontoAmount(inv);
 
         let warnIcon = "";
+        const today = toDate(new Date());
+        const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
+        const sk = inv.skontoDate ? toDate(new Date(inv.skontoDate)) : null;
+
         if (status.type === "overdue") warnIcon = `<span class="warn-icon">🔴</span>`;
-        else if (status.type === "dueToday")
+        else if (due && +due === +today)
           warnIcon = `<span class="warn-icon">🟠</span>`;
-        else if (inv.skontoDate && !inv.paid) {
-          const today = toDate(new Date());
-          const sk = toDate(new Date(inv.skontoDate));
+        else if (sk && !inv.paid) {
           if (today > sk) warnIcon = `<span class="warn-icon">⏳</span>`;
           else warnIcon = `<span class="warn-icon">💸</span>`;
         }
@@ -407,13 +429,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${inv.skontoDate ? formatDate(inv.skontoDate) : "-"}</td>
         <td>${formatDate(inv.dueDate)}</td>
         <td>${warnIcon}</td>
-
         <td class="checkbox-center">
           <input type="checkbox" class="paid-checkbox" data-id="${inv.id}" ${
           inv.paid ? "checked" : ""
         }>
         </td>
-
         <td>
           <button class="action-btn edit-btn edit-btn" data-id="${inv.id}">
             🍬 Bearbeiten
@@ -427,7 +447,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  // MONAT / JAHR FILTER
   function renderFiltersMonthYear() {
     const years = [
       ...new Set(invoices.map((i) => new Date(i.dueDate).getFullYear())),
@@ -447,14 +466,19 @@ document.addEventListener("DOMContentLoaded", () => {
       months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
   }
 
-  // SUPPLIER DASHBOARD
   function renderSupplierDashboard() {
     const stats = {};
 
     invoices.forEach((inv) => {
       const s = inv.supplier;
       if (!stats[s]) {
-        stats[s] = { supplier: s, count: 0, sumOpen: 0, sumOverdue: 0, sumSkonto: 0 };
+        stats[s] = {
+          supplier: s,
+          count: 0,
+          sumOpen: 0,
+          sumOverdue: 0,
+          sumSkonto: 0,
+        };
       }
 
       stats[s].count++;
@@ -489,7 +513,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // AUTOCOMPLETE
   function renderSupplierDatalist() {
     const suppliers = [...new Set(invoices.map((i) => i.supplier))].sort();
     supplierDatalist.innerHTML = suppliers
@@ -497,7 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  // SUMMEN
   function renderSummaries() {
     let open = 0;
     let overdue = 0;
@@ -517,7 +539,8 @@ document.addEventListener("DOMContentLoaded", () => {
     sumSkontoEl.textContent = skonto.toFixed(2) + " €";
   }
 
-  // HELPERS
+  // HELPERS -----------------------------------------------------------------
+
   function toDate(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
