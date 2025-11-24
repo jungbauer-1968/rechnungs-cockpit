@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_KEY = "rechnungsCockpit_v3";
   const THEME_KEY = "cockpit_theme";
 
-  // Elements
+  // Elemente
   const form = document.getElementById("invoiceForm");
   const numberInput = document.getElementById("invoiceNumber");
   const supplierInput = document.getElementById("supplier");
@@ -15,7 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearFormBtn = document.getElementById("clearFormBtn");
   const saveBtn = document.getElementById("saveBtn");
 
-  // List/Table
   const tableBody = document.getElementById("invoiceTableBody");
   const emptyState = document.getElementById("emptyState");
   const searchInput = document.getElementById("searchInput");
@@ -23,18 +22,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const monthFilter = document.getElementById("monthFilter");
   const yearFilter = document.getElementById("yearFilter");
 
-  // Dashboard
   const supplierCardsContainer = document.getElementById("supplierCards");
   const sumOpenEl = document.getElementById("sumOpen");
   const sumOverdueEl = document.getElementById("sumOverdue");
   const sumSkontoEl = document.getElementById("sumSkonto");
-
   const supplierDatalist = document.getElementById("supplierDatalist");
 
-  // Theme
   const themeToggle = document.getElementById("themeToggle");
 
-  // App state
+  // Zustände
   let invoices = loadInvoices();
   let currentFilter = "open";
   let currentSearch = "";
@@ -45,13 +41,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let sortDir = 1;
   let editId = null;
 
-  // INIT ---------------------------------------------------------
-
+  // INITIAL
   initTheme();
   initDateDefaults();
   attachEvents();
   renderAll();
 
+  // DARK/LIGHT
   function initTheme() {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved === "dark") {
@@ -62,13 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // HEUTE als Default
   function initDateDefaults() {
     const today = new Date().toISOString().slice(0, 10);
     dueDateInput.value = today;
   }
 
-  // EVENT HANDLERS ---------------------------------------------------
-
+  // EVENT HANDLER
   function attachEvents() {
     themeToggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
@@ -118,7 +114,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tableBody.addEventListener("click", (event) => {
       const t = event.target;
       const id = t.dataset.id;
-
       if (!id) return;
 
       if (t.classList.contains("edit-btn")) startEdit(id);
@@ -142,21 +137,22 @@ document.addEventListener("DOMContentLoaded", () => {
             sortKey = key;
             sortDir = 1;
           }
+
           document
             .querySelectorAll(".invoice-table th[data-sort]")
             .forEach((h) => h.classList.remove("sort-asc", "sort-desc"));
           th.classList.add(sortDir === 1 ? "sort-asc" : "sort-desc");
+
           renderTable();
         })
       );
   }
 
-  // SAVE INVOICE ---------------------------------------------------------
-
+  // SPEICHERN / BEARBEITEN
   function handleSave(e) {
     e.preventDefault();
 
-    let supplier = supplierInput.value.trim().toUpperCase(); // AUTOKORREKTUR
+    let supplier = supplierInput.value.trim().toUpperCase();
 
     const number = numberInput.value.trim();
     const amount = parseFloat(amountInput.value);
@@ -204,8 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
-  // LOAD & SAVE -------------------------------------------------------------
-
+  // STORAGE
   function loadInvoices() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -219,8 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
   }
 
-  // EDIT / DELETE / PAY -----------------------------------------------------
-
+  // BEARBEITEN
   function startEdit(id) {
     const inv = invoices.find((i) => i.id === id);
     if (!inv) return;
@@ -256,8 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
-  // SKONTO -------------------------------------------------------------
-
+  // SKONTO
   function updateSkontoInfo() {
     const amount = parseFloat(amountInput.value);
     const percent = parseFloat(skontoPercentInput.value || "0");
@@ -280,8 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return inv.amount * (inv.skontoPercent / 100);
   }
 
-  // STATUS -------------------------------------------------------------
-
+  // STATUS-BERECHNUNG
   function getStatus(inv) {
     const today = toDate(new Date());
     const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
@@ -294,23 +286,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return { type: "open", label: "Offen" };
   }
-  // FILTER + SORT ---------------------------------------------------------
 
+  // FILTER 
   function getFilteredInvoices() {
     return invoices.filter((inv) => {
       const status = getStatus(inv);
 
-      // status filter
       if (currentFilter !== "all" && currentFilter !== status.type) return false;
 
-      // supplier filter
       if (
         currentSupplierFilter !== "all" &&
         inv.supplier !== currentSupplierFilter
       )
         return false;
 
-      // month/year filter
       if (currentMonth !== "all" || currentYear !== "all") {
         const d = new Date(inv.dueDate);
         if (currentMonth !== "all" && d.getMonth() + 1 !== Number(currentMonth))
@@ -319,7 +308,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return false;
       }
 
-      // search filter (fixed)
       if (currentSearch) {
         const haystack =
           (inv.number || "").toLowerCase() +
@@ -335,6 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // SORTIEREN
   function sortInvoices(list) {
     return [...list].sort((a, b) => {
       const dir = sortDir;
@@ -345,28 +334,23 @@ document.addEventListener("DOMContentLoaded", () => {
           va = a.number.toLowerCase();
           vb = b.number.toLowerCase();
           break;
-
         case "supplier":
           va = a.supplier.toLowerCase();
           vb = b.supplier.toLowerCase();
           break;
-
         case "amount":
           va = a.amount;
           vb = b.amount;
           break;
-
         case "skontoPercent":
           va = a.skontoPercent || 0;
           vb = b.skontoPercent || 0;
           break;
-
         case "skontoAmount":
           va = calcSkontoAmount(a);
           vb = calcSkontoAmount(b);
           break;
-
-        default: // dueDate
+        default:
           va = new Date(a.dueDate).getTime();
           vb = new Date(b.dueDate).getTime();
       }
@@ -375,8 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // RENDER EVERYTHING ------------------------------------------------------
-
+  // RENDER ALL
   function renderAll() {
     renderFiltersMonthYear();
     renderTable();
@@ -385,8 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSupplierDatalist();
   }
 
-  // TABLE ------------------------------------------------------------------
-
+  // TABELLE
   function renderTable() {
     const data = sortInvoices(getFilteredInvoices());
 
@@ -403,10 +385,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const status = getStatus(inv);
         const skAmount = calcSkontoAmount(inv);
 
-        // Warning emoji logic
         let warnIcon = "";
         if (status.type === "overdue") warnIcon = `<span class="warn-icon">🔴</span>`;
-        else if (status.type === "dueToday") warnIcon = `<span class="warn-icon">🟠</span>`;
+        else if (status.type === "dueToday")
+          warnIcon = `<span class="warn-icon">🟠</span>`;
         else if (inv.skontoDate && !inv.paid) {
           const today = toDate(new Date());
           const sk = toDate(new Date(inv.skontoDate));
@@ -416,7 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return `
       <tr class="row-${status.type}">
-        <td><span class="status-pill status-${status.type}">${status.label}</span></td>
+        <td>${status.label}</td>
         <td><strong>${inv.number}</strong></td>
         <td>${inv.supplier}</td>
         <td class="numeric">${inv.amount.toFixed(2)} €</td>
@@ -445,8 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  // MONTH/YEAR FILTER --------------------------------------------------------
-
+  // MONAT / JAHR FILTER
   function renderFiltersMonthYear() {
     const years = [
       ...new Set(invoices.map((i) => new Date(i.dueDate).getFullYear())),
@@ -457,18 +438,8 @@ document.addEventListener("DOMContentLoaded", () => {
       years.map((y) => `<option value="${y}">${y}</option>`).join("");
 
     const months = [
-      "Jänner",
-      "Februar",
-      "März",
-      "April",
-      "Mai",
-      "Juni",
-      "Juli",
-      "August",
-      "September",
-      "Oktober",
-      "November",
-      "Dezember",
+      "Jänner","Februar","März","April","Mai","Juni",
+      "Juli","August","September","Oktober","November","Dezember"
     ];
 
     monthFilter.innerHTML =
@@ -476,21 +447,14 @@ document.addEventListener("DOMContentLoaded", () => {
       months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
   }
 
-  // SUPPLIER DASHBOARD -------------------------------------------------------
-
+  // SUPPLIER DASHBOARD
   function renderSupplierDashboard() {
     const stats = {};
 
     invoices.forEach((inv) => {
       const s = inv.supplier;
       if (!stats[s]) {
-        stats[s] = {
-          supplier: s,
-          count: 0,
-          sumOpen: 0,
-          sumOverdue: 0,
-          sumSkonto: 0,
-        };
+        stats[s] = { supplier: s, count: 0, sumOpen: 0, sumOverdue: 0, sumSkonto: 0 };
       }
 
       stats[s].count++;
@@ -507,21 +471,12 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((s) => {
         const active = currentSupplierFilter === s.supplier ? "active" : "";
         return `
-        <div class="supplier-card ${active}" data-supplier="${s.supplier}">
-          <div class="supplier-card-header">
-            <span class="supplier-name">${s.supplier}</span>
-            <span class="supplier-count">${s.count} Rechn.</span>
-          </div>
-
-          <div class="supplier-sums">
-            <span>Offen: ${s.sumOpen.toFixed(2)} €</span>
-          </div>
-
-          <div class="supplier-sums">
-            <span>Überfällig: ${s.sumOverdue.toFixed(2)} €</span>
-            <span>Skonto: ${s.sumSkonto.toFixed(2)} €</span>
-          </div>
-        </div>`;
+      <div class="supplier-card ${active}" data-supplier="${s.supplier}">
+        <div><strong>${s.supplier}</strong> – ${s.count} Rechn.</div>
+        <div>Offen: ${s.sumOpen.toFixed(2)} €</div>
+        <div>Überfällig: ${s.sumOverdue.toFixed(2)} €</div>
+        <div>Skonto: ${s.sumSkonto.toFixed(2)} €</div>
+      </div>`;
       })
       .join("");
 
@@ -534,8 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // SUPPLIER AUTOCOMPLETE ---------------------------------------------------
-
+  // AUTOCOMPLETE
   function renderSupplierDatalist() {
     const suppliers = [...new Set(invoices.map((i) => i.supplier))].sort();
     supplierDatalist.innerHTML = suppliers
@@ -543,8 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  // SUMMARIES ---------------------------------------------------------------
-
+  // SUMMEN
   function renderSummaries() {
     let open = 0;
     let overdue = 0;
@@ -564,8 +517,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sumSkontoEl.textContent = skonto.toFixed(2) + " €";
   }
 
-  // HELPERS -----------------------------------------------------------------
-
+  // HELPERS
   function toDate(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
@@ -575,4 +527,3 @@ document.addEventListener("DOMContentLoaded", () => {
     return d.toLocaleDateString("de-AT");
   }
 });
-
