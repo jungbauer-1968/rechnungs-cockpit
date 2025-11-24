@@ -181,9 +181,20 @@ body.dark .theme-toggle {
 --------------------------------*/
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr; /* beide Spalten gleich breit */
   gap: 14px;
 }
+
+.form-field {
+  width: 100%;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%; /* feld immer volle breite */
+}
+
 
 /* Fix for misalignment !! */
 .form-field {
