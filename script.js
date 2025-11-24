@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const STORAGE_KEY = "rechnungsCockpit_v3";
+  const STORAGE_KEY = "rechnungsCockpit_v4";
   const THEME_KEY = "cockpit_theme";
 
-  // Formular-Elemente
+  // Formular
   const form = document.getElementById("invoiceForm");
   const numberInput = document.getElementById("invoiceNumber");
   const supplierInput = document.getElementById("supplier");
@@ -44,14 +44,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let sortDir = 1;
   let editId = null;
 
-  // INIT
+  // INIT -------------------------------------------------------
   initTheme();
   initDateDefaults();
   attachEvents();
   renderAll();
 
-  // THEME ------------------------------------------------------------------
-
+  // THEME ------------------------------------------------------
   function initTheme() {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved === "dark") {
@@ -62,13 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Default-Datum = heute
-  function initDateDefaults() {
-    const today = new Date().toISOString().slice(0, 10);
-    dueDateInput.value = today;
-  }
-
   function attachEvents() {
+    // Theme toggle
     themeToggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
       const isDark = document.body.classList.contains("dark");
@@ -76,9 +70,11 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
     });
 
+    // Skonto Info
     amountInput.addEventListener("input", updateSkontoInfo);
     skontoPercentInput.addEventListener("change", updateSkontoInfo);
 
+    // Reset / Abbrechen
     clearFormBtn.addEventListener("click", () => {
       form.reset();
       editId = null;
@@ -88,8 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
       updateSkontoInfo();
     });
 
+    // Speichern
     form.addEventListener("submit", handleSave);
 
+    // Status-Filter
     filterButtons.forEach((btn) =>
       btn.addEventListener("click", () => {
         filterButtons.forEach((b) => b.classList.remove("active"));
@@ -99,11 +97,13 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     );
 
+    // Suche
     searchInput.addEventListener("input", () => {
       currentSearch = searchInput.value.trim().toLowerCase();
       renderAll();
     });
 
+    // Monat / Jahr Filter
     monthFilter.addEventListener("change", () => {
       currentMonth = monthFilter.value;
       renderAll();
@@ -114,6 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderAll();
     });
 
+    // Aktionen in Tabelle (Bearbeiten / Löschen)
     tableBody.addEventListener("click", (event) => {
       const t = event.target;
       const id = t.dataset.id;
@@ -123,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (t.classList.contains("delete-btn")) deleteInvoice(id);
     });
 
+    // Bezahlt Checkbox
     tableBody.addEventListener("change", (event) => {
       const t = event.target;
       if (t.classList.contains("paid-checkbox")) {
@@ -130,13 +132,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // Sortierung per Klick auf Tabellenkopf
     document
       .querySelectorAll(".invoice-table th[data-sort]")
       .forEach((th) =>
         th.addEventListener("click", () => {
           const key = th.dataset.sort;
-          if (sortKey === key) sortDir = -sortDir;
-          else {
+          if (sortKey === key) {
+            sortDir = -sortDir;
+          } else {
             sortKey = key;
             sortDir = 1;
           }
@@ -151,18 +155,18 @@ document.addEventListener("DOMContentLoaded", () => {
       );
   }
 
-  // FORM SPEICHERN ---------------------------------------------------------
+  // DATUM DEFAULT ---------------------------------------------------------
+  function initDateDefaults() {
+    const today = new Date().toISOString().slice(0, 10);
+    dueDateInput.value = today;
+  }
+
+  // SPEICHERN / BEARBEITEN -----------------------------------------------
 
   function handleSave(e) {
     e.preventDefault();
 
     let supplier = supplierInput.value.trim();
-    if (!supplier) {
-      alert("Bitte einen Lieferanten eingeben.");
-      return;
-    }
-    supplier = supplier.toUpperCase(); // Autokorrektur
-
     const number = numberInput.value.trim();
     const amount = parseFloat(amountInput.value);
     const dueDate = dueDateInput.value;
@@ -172,10 +176,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const skontoDate = skontoDateInput.value || null;
     const note = noteInput.value.trim();
 
-    if (!number || !dueDate || isNaN(amount)) {
-      alert("Bitte Rechnungsnummer, Betrag und Fälligkeitsdatum ausfüllen.");
+    if (!number || !supplier || !dueDate || isNaN(amount)) {
+      alert("Bitte Rechnungsnummer, Lieferant, Betrag und Fälligkeitsdatum ausfüllen.");
       return;
     }
+
+    // Lieferant immer GROSS (Autokorrektur)
+    supplier = supplier.toUpperCase();
 
     const base = {
       number,
@@ -210,23 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateSkontoInfo();
     renderAll();
   }
-
-  // STORAGE -----------------------------------------------------------------
-
-  function loadInvoices() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveInvoices() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
-  }
-
-  // EDIT / DELETE / PAID ----------------------------------------------------
 
   function startEdit(id) {
     const inv = invoices.find((i) => i.id === id);
@@ -263,7 +253,22 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
-  // SKONTO ------------------------------------------------------------------
+  // STORAGE ---------------------------------------------------------------
+
+  function loadInvoices() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveInvoices() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
+  }
+
+  // SKONTO ---------------------------------------------------------------
 
   function updateSkontoInfo() {
     const amount = parseFloat(amountInput.value);
@@ -287,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return inv.amount * (inv.skontoPercent / 100);
   }
 
-  // STATUS ------------------------------------------------------------------
+  // STATUS & WARNLOGIK ---------------------------------------------------
 
   function getStatus(inv) {
     const today = toDate(new Date());
@@ -296,28 +301,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (inv.paid) return { type: "paid", label: "Bezahlt" };
     if (due && due < today) return { type: "overdue", label: "Überfällig" };
-    if (due && +due === +today)
-      return { type: "open", label: "Heute fällig" }; // Typ bleibt "open"
-    if (sk && today <= sk)
-      return { type: "skonto", label: "Skonto-Phase" };
-
+    if (sk && today <= sk) return { type: "skonto", label: "Skonto-Phase" };
     return { type: "open", label: "Offen" };
   }
 
-  // FILTER & SORT -----------------------------------------------------------
+  function getWarningIcon(inv) {
+    const today = toDate(new Date());
+    const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
+    const sk = inv.skontoDate ? toDate(new Date(inv.skontoDate)) : null;
+
+    if (inv.paid) return "";
+
+    if (due) {
+      if (due < today) return `<span class="warn-icon">🔴</span>`;      // Überfällig
+      if (+due === +today) return `<span class="warn-icon">🟠</span>`;  // Heute fällig
+    }
+
+    if (sk) {
+      if (today > sk) return `<span class="warn-icon">⏳</span>`;        // Skonto vorbei
+      if (today <= sk) return `<span class="warn-icon">💸</span>`;      // Skonto möglich
+    }
+
+    return "";
+  }
+
+  // FILTER & SORT --------------------------------------------------------
 
   function getFilteredInvoices() {
     return invoices.filter((inv) => {
       const status = getStatus(inv);
 
+      // Statusfilter
       if (currentFilter !== "all" && currentFilter !== status.type) return false;
 
+      // Lieferantenfilter
       if (
         currentSupplierFilter !== "all" &&
         inv.supplier !== currentSupplierFilter
       )
         return false;
 
+      // Monat/Jahr-Filter
       if (currentMonth !== "all" || currentYear !== "all") {
         const d = new Date(inv.dueDate);
         if (currentMonth !== "all" && d.getMonth() + 1 !== Number(currentMonth))
@@ -326,6 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return false;
       }
 
+      // Suche
       if (currentSearch) {
         const haystack =
           (inv.number || "").toLowerCase() +
@@ -370,6 +395,10 @@ document.addEventListener("DOMContentLoaded", () => {
           va = calcSkontoAmount(a);
           vb = calcSkontoAmount(b);
           break;
+        case "skontoDate":
+          va = a.skontoDate ? new Date(a.skontoDate).getTime() : 0;
+          vb = b.skontoDate ? new Date(b.skontoDate).getTime() : 0;
+          break;
         default: // dueDate
           va = new Date(a.dueDate).getTime();
           vb = new Date(b.dueDate).getTime();
@@ -379,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // RENDER ------------------------------------------------------------------
+  // RENDERING ------------------------------------------------------------
 
   function renderAll() {
     renderFiltersMonthYear();
@@ -404,19 +433,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((inv) => {
         const status = getStatus(inv);
         const skAmount = calcSkontoAmount(inv);
-
-        let warnIcon = "";
-        const today = toDate(new Date());
-        const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
-        const sk = inv.skontoDate ? toDate(new Date(inv.skontoDate)) : null;
-
-        if (status.type === "overdue") warnIcon = `<span class="warn-icon">🔴</span>`;
-        else if (due && +due === +today)
-          warnIcon = `<span class="warn-icon">🟠</span>`;
-        else if (sk && !inv.paid) {
-          if (today > sk) warnIcon = `<span class="warn-icon">⏳</span>`;
-          else warnIcon = `<span class="warn-icon">💸</span>`;
-        }
+        const warnIcon = getWarningIcon(inv);
 
         return `
       <tr class="row-${status.type}">
@@ -429,18 +446,14 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${inv.skontoDate ? formatDate(inv.skontoDate) : "-"}</td>
         <td>${formatDate(inv.dueDate)}</td>
         <td>${warnIcon}</td>
-        <td class="checkbox-center">
+        <td style="text-align:center">
           <input type="checkbox" class="paid-checkbox" data-id="${inv.id}" ${
           inv.paid ? "checked" : ""
         }>
         </td>
         <td>
-          <button class="action-btn edit-btn edit-btn" data-id="${inv.id}">
-            🍬 Bearbeiten
-          </button>
-          <button class="action-btn delete-btn" data-id="${inv.id}">
-            🧨 Löschen
-          </button>
+          <button class="btn small edit-btn" data-id="${inv.id}">🍬 Bearbeiten</button>
+          <button class="btn small delete-btn" data-id="${inv.id}">🧨 Löschen</button>
         </td>
       </tr>`;
       })
@@ -450,20 +463,35 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderFiltersMonthYear() {
     const years = [
       ...new Set(invoices.map((i) => new Date(i.dueDate).getFullYear())),
-    ].sort();
+    ].filter((y) => !isNaN(y)).sort((a, b) => a - b);
 
     yearFilter.innerHTML =
       `<option value="all">Alle Jahre</option>` +
       years.map((y) => `<option value="${y}">${y}</option>`).join("");
 
     const months = [
-      "Jänner","Februar","März","April","Mai","Juni",
-      "Juli","August","September","Oktober","November","Dezember"
+      "Alle Monate",
+      "Jänner",
+      "Februar",
+      "März",
+      "April",
+      "Mai",
+      "Juni",
+      "Juli",
+      "August",
+      "September",
+      "Oktober",
+      "November",
+      "Dezember",
     ];
 
-    monthFilter.innerHTML =
-      `<option value="all">Alle Monate</option>` +
-      months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+    monthFilter.innerHTML = months
+      .map((m, i) =>
+        i === 0
+          ? `<option value="all">${m}</option>`
+          : `<option value="${i}">${m}</option>`
+      )
+      .join("");
   }
 
   function renderSupplierDashboard() {
@@ -539,7 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sumSkontoEl.textContent = skonto.toFixed(2) + " €";
   }
 
-  // HELPERS -----------------------------------------------------------------
+  // HELPERS ---------------------------------------------------------------
 
   function toDate(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -547,6 +575,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatDate(v) {
     const d = new Date(v);
+    if (isNaN(d)) return "-";
     return d.toLocaleDateString("de-AT");
   }
 });
