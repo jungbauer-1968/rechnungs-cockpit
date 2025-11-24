@@ -15,156 +15,127 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const filterButtons = document.querySelectorAll("[data-filter]");
   const searchInput = document.getElementById("searchInput");
-  const supplierList = document.getElementById("supplierList");
-  const supplierDatalist = document.getElementById("supplierDatalist");
-
-  const sumOpenEl = document.getElementById("sumOpen");
-  const sumOverdueEl = document.getElementById("sumOverdue");
-  const sumSkontoEl = document.getElementById("sumSkonto");
 
   let invoices = loadInvoices();
+
   let currentFilter = "open";
-  let currentSupplier = "all";
   let currentSearch = "";
+  let editId = null;  // ⭐ NEU → merken welche Rechnung bearbeitet wird
 
-  // --- Init ---
-  setDefaultDates();
-  attachEvents();
-  renderAll();
+  init();
+  function init() {
+    form.addEventListener("submit", handleSave);
+    searchInput.addEventListener("input", () => {
+      currentSearch = searchInput.value.toLowerCase();
+      render();
+    });
 
-  // --- Functions ---
+    clearFormBtn.addEventListener("click", () => {
+      form.reset();
+      editId = null;
+      clearFormBtn.textContent = "Felder leeren";
+    });
 
-  function setDefaultDates() {
-    const today = new Date().toISOString().slice(0, 10);
-    dueDateInput.value = today;
-  }
-
-  function attachEvents() {
-    form.addEventListener("submit", handleAddInvoice);
-    clearFormBtn.addEventListener("click", handleClearForm);
-
-    filterButtons.forEach((btn) => {
+    filterButtons.forEach(btn => {
       btn.addEventListener("click", () => {
-        filterButtons.forEach((b) => b.classList.remove("active"));
+        filterButtons.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.dataset.filter;
-        renderAll();
+        render();
       });
     });
 
-    searchInput.addEventListener("input", () => {
-      currentSearch = searchInput.value.trim().toLowerCase();
-      renderAll();
-    });
-
-    tableBody.addEventListener("change", (event) => {
-      if (event.target.matches(".paid-checkbox")) {
-        const id = event.target.dataset.id;
-        togglePaid(id, event.target.checked);
-      }
-    });
-
     tableBody.addEventListener("click", (event) => {
-      if (event.target.matches(".delete-btn")) {
-        const id = event.target.dataset.id;
+      const id = event.target.dataset.id;
+
+      if (event.target.classList.contains("delete-btn")) {
         deleteInvoice(id);
       }
-    });
 
-    supplierList.addEventListener("click", (event) => {
-      const li = event.target.closest("li");
-      if (!li) return;
-      const supplier = li.dataset.supplier;
-      if (supplier === currentSupplier) {
-        currentSupplier = "all";
-      } else {
-        currentSupplier = supplier;
+      if (event.target.classList.contains("edit-btn")) {
+        loadForEdit(id);
       }
-      renderAll();
     });
+
+    render();
   }
 
-  function loadInvoices() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const data = JSON.parse(raw);
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn("Konnte Daten nicht laden:", e);
-      return [];
-    }
-  }
+  function handleSave(e) {
+    e.preventDefault();
 
-  function saveInvoices() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
-  }
+    const data = {
+      number: numberInput.value.trim(),
+      supplier: supplierInput.value.trim(),
+      amount: parseFloat(amountInput.value),
+      dueDate: dueDateInput.value,
+      skontoDate: skontoDateInput.value || null,
+      note: noteInput.value.trim(),
+      paid: false
+    };
 
-  function handleAddInvoice(event) {
-    event.preventDefault();
-
-    const number = numberInput.value.trim();
-    const supplier = supplierInput.value.trim();
-    const amount = parseFloat(amountInput.value.replace(",", "."));
-    const dueDate = dueDateInput.value;
-    const skontoDate = skontoDateInput.value || null;
-    const note = noteInput.value.trim();
-
-    if (!number || !supplier || !dueDate || isNaN(amount)) {
-      alert("Bitte Rechnungsnummer, Lieferant, Betrag und Fälligkeitsdatum ausfüllen.");
+    if (!data.number || !data.supplier || !data.amount || !data.dueDate) {
+      alert("Bitte alle Pflichtfelder ausfüllen.");
       return;
     }
 
-    const invoice = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      number,
-      supplier,
-      amount,
-      dueDate,
-      skontoDate,
-      note,
-      paid: false,
-      createdAt: new Date().toISOString()
-    };
+    if (editId === null) {
+      // ⭐ Neue Rechnung
+      data.id = crypto.randomUUID();
+      data.createdAt = new Date().toISOString();
+      invoices.push(data);
+    } else {
+      // ⭐ Rechnung aktualisieren
+      const idx = invoices.findIndex(inv => inv.id === editId);
+      invoices[idx] = { ...invoices[idx], ...data };
+      editId = null;
+      clearFormBtn.textContent = "Felder leeren";
+    }
 
-    invoices.push(invoice);
     saveInvoices();
-    renderAll();
     form.reset();
-    setDefaultDates();
+    render();
   }
 
-  function handleClearForm() {
-    form.reset();
-    setDefaultDates();
-  }
+  function loadForEdit(id) {
+    const inv = invoices.find(i => i.id === id);
 
-  function togglePaid(id, paid) {
-    const idx = invoices.findIndex((inv) => inv.id === id);
-    if (idx === -1) return;
-    invoices[idx].paid = paid;
-    saveInvoices();
-    renderAll();
+    numberInput.value = inv.number;
+    supplierInput.value = inv.supplier;
+    amountInput.value = inv.amount;
+    dueDateInput.value = inv.dueDate;
+    skontoDateInput.value = inv.skontoDate || "";
+    noteInput.value = inv.note;
+
+    editId = id;
+
+    clearFormBtn.textContent = "Bearbeitung abbrechen";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function deleteInvoice(id) {
-    if (!confirm("Rechnung wirklich löschen?")) return;
-    invoices = invoices.filter((inv) => inv.id !== id);
+    if (!confirm("Willst du die Rechnung wirklich löschen?")) return;
+    invoices = invoices.filter(inv => inv.id !== id);
     saveInvoices();
-    renderAll();
+    render();
   }
 
-  function renderAll() {
-    renderTable();
-    renderSuppliers();
-    renderSummaries();
-    renderSupplierFilterActive();
-  }
+  function render() {
+    let list = invoices;
 
-  function renderTable() {
-    const filtered = getFilteredInvoices();
+    // ⭐ FILTER
+    if (currentFilter !== "all") {
+      list = list.filter(inv => getStatus(inv).type === currentFilter);
+    }
 
-    if (filtered.length === 0) {
+    // ⭐ SUCHE
+    if (currentSearch.length > 0) {
+      list = list.filter(inv =>
+        inv.number.toLowerCase().includes(currentSearch) ||
+        inv.supplier.toLowerCase().includes(currentSearch)
+      );
+    }
+
+    if (list.length === 0) {
       tableBody.innerHTML = "";
       emptyState.style.display = "block";
       return;
@@ -172,229 +143,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
     emptyState.style.display = "none";
 
-    filtered.sort((a, b) => {
-      const da = new Date(a.dueDate).getTime();
-      const db = new Date(b.dueDate).getTime();
-      return da - db;
-    });
-
-    const rows = filtered
-      .map((inv) => {
-        const status = getStatus(inv);
-        const amountFormatted = formatCurrency(inv.amount);
-        const skontoText = inv.skontoDate ? formatDate(inv.skontoDate) : "–";
-        const dueText = formatDate(inv.dueDate);
-        const noteIcon = inv.note ? "📝" : "";
-        const rowClass = `row-${status.type}`;
-
-        return `
-          <tr class="${rowClass}">
-            <td class="status-cell">
-              <span class="status-pill status-${status.type}">
-                <span class="dot dot-${status.type === "open" ? "open" : status.type}"></span>
-                ${status.short}
-              </span>
-            </td>
-            <td>
-              <strong>${escapeHtml(inv.number)}</strong>
-              ${noteIcon ? `<span class="badge badge-small" title="${escapeHtml(inv.note)}">${noteIcon}</span>` : ""}
-            </td>
-            <td>${escapeHtml(inv.supplier)}</td>
-            <td>${amountFormatted}</td>
-            <td>${skontoText}</td>
-            <td>${dueText}</td>
-            <td>${status.label}</td>
-            <td class="checkbox-center">
-              <input
-                type="checkbox"
-                class="paid-checkbox"
-                data-id="${inv.id}"
-                ${inv.paid ? "checked" : ""}
-              />
-            </td>
-            <td class="checkbox-center">
-              <button class="action-btn delete-btn" title="Löschen" data-id="${inv.id}">✖</button>
-            </td>
-          </tr>
-        `;
-      })
-      .join("");
-
-    tableBody.innerHTML = rows;
-  }
-
-  function getFilteredInvoices() {
-    return invoices.filter((inv) => {
+    tableBody.innerHTML = list.map(inv => {
       const status = getStatus(inv);
 
-      if (currentFilter !== "all" && currentFilter !== status.type) {
-        if (!(currentFilter === "open" && status.type === "future")) {
-          return false;
-        }
-      }
-
-      if (currentSupplier !== "all" && inv.supplier !== currentSupplier) {
-        return false;
-      }
-
-      if (currentSearch) {
-        const haystack =
-          (inv.number + " " + inv.supplier).toLowerCase();
-        if (!haystack.includes(currentSearch)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
+      return `
+        <tr class="row-${status.type}">
+          <td>${status.short}</td>
+          <td><strong>${inv.number}</strong></td>
+          <td>${inv.supplier}</td>
+          <td>${inv.amount.toFixed(2)} €</td>
+          <td>${inv.skontoDate ? formatDate(inv.skontoDate) : "-"}</td>
+          <td>${formatDate(inv.dueDate)}</td>
+          <td>${status.label}</td>
+          <td>
+            <button class="edit-btn" data-id="${inv.id}">Bearbeiten</button>
+          </td>
+          <td>
+            <button class="delete-btn" data-id="${inv.id}">✖</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
   }
 
   function getStatus(inv) {
-    if (inv.paid) {
-      return {
-        type: "paid",
-        label: "Bezahlt",
-        short: "Bezahlt"
-      };
-    }
+    const today = toDate(new Date());
+    const due = toDate(new Date(inv.dueDate));
+    const sk = inv.skontoDate ? toDate(new Date(inv.skontoDate)) : null;
 
-    const today = toDateOnly(new Date());
-    const due = inv.dueDate ? toDateOnly(new Date(inv.dueDate)) : null;
-    const skonto = inv.skontoDate ? toDateOnly(new Date(inv.skontoDate)) : null;
+    if (due < today) return { type: "overdue", short: "Überf.", label: "Überfällig" };
+    if (sk && sk < today && today < due) return { type: "skonto", short: "Skonto", label: "Skonto-Phase" };
 
-    if (due && due < today) {
-      return {
-        type: "overdue",
-        label: "Überfällig",
-        short: "Überf."
-      };
-    }
-
-    if (skonto && skonto < today && (!due || today <= due)) {
-      return {
-        type: "skonto",
-        label: "Skonto-Phase (Skonto vorbei, noch nicht fällig)",
-        short: "Skonto"
-      };
-    }
-
-    if (due && today >= toDateOnly(new Date()) && (!skonto || today < skonto)) {
-      // Rechnung ist „offen / noch nicht fällig“
-      return {
-        type: "future",
-        label: "Noch nicht fällig",
-        short: "Offen"
-      };
-    }
-
-    return {
-      type: "open",
-      label: "Offen",
-      short: "Offen"
-    };
+    return { type: "open", short: "Offen", label: "Offen" };
   }
 
-  function renderSuppliers() {
-    const counts = {};
-    invoices.forEach((inv) => {
-      const key = inv.supplier;
-      counts[key] = (counts[key] || 0) + 1;
-    });
-
-    const suppliers = Object.entries(counts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-
-    const items = suppliers
-      .map(
-        (s) => `
-        <li data-supplier="${escapeHtml(s.name)}" class="${currentSupplier === s.name ? "active" : ""}">
-          <span>${escapeHtml(s.name)}</span>
-          <span class="badge">${s.count}</span>
-        </li>
-      `
-      )
-      .join("");
-
-    supplierList.innerHTML =
-      `<li data-supplier="all" class="${currentSupplier === "all" ? "active" : ""}">
-        <span>Alle Lieferanten</span>
-        <span class="badge">${invoices.length}</span>
-      </li>` + items;
-
-    // datalist für Lieferanten
-    const dlOptions = suppliers
-      .map(
-        (s) => `<option value="${escapeHtml(s.name)}"></option>`
-      )
-      .join("");
-    supplierDatalist.innerHTML = dlOptions;
+  function saveInvoices() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
   }
 
-  function renderSummaries() {
-    let sumOpen = 0;
-    let sumOverdue = 0;
-    let sumSkonto = 0;
-
-    invoices.forEach((inv) => {
-      if (inv.paid) return;
-      const status = getStatus(inv);
-      if (status.type === "overdue") {
-        sumOverdue += inv.amount;
-        sumOpen += inv.amount;
-      } else if (status.type === "skonto") {
-        sumSkonto += inv.amount;
-        sumOpen += inv.amount;
-      } else {
-        sumOpen += inv.amount;
-      }
-    });
-
-    sumOpenEl.textContent = formatCurrency(sumOpen);
-    sumOverdueEl.textContent = formatCurrency(sumOverdue);
-    sumSkontoEl.textContent = formatCurrency(sumSkonto);
+  function loadInvoices() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   }
 
-  function renderSupplierFilterActive() {
-    const lis = supplierList.querySelectorAll("li");
-    lis.forEach((li) => {
-      const supplier = li.dataset.supplier;
-      if (supplier === currentSupplier) {
-        li.classList.add("active");
-      } else {
-        li.classList.remove("active");
-      }
-    });
+  function formatDate(d) {
+    return new Date(d).toLocaleDateString("de-AT");
   }
 
-  function formatCurrency(amount) {
-    try {
-      return new Intl.NumberFormat("de-AT", {
-        style: "currency",
-        currency: "EUR"
-      }).format(amount);
-    } catch {
-      return "€ " + amount.toFixed(2).replace(".", ",");
-    }
-  }
-
-  function formatDate(value) {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return value;
-    return d.toLocaleDateString("de-AT");
-  }
-
-  function toDateOnly(date) {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  function toDate(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
 });
