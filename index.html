@@ -1,96 +1,173 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Rechnungs-Cockpit</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rechnungs-Cockpit</title>
+<link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div class="app">
-    <header class="app-header">
-      <div class="title-block">
-        <h1>Rechnungs-Cockpit</h1>
-        <p>Offene Eingangsrechnungen mit Skonto, Fälligkeiten & Spaß-Faktor im Blick ✨</p>
+
+<div class="app">
+
+  <!-- ================= HEADER ================= -->
+  <header class="app-header">
+    <div class="title-block">
+      <h1>Rechnungs-Cockpit</h1>
+      <p>Offene Eingangsrechnungen mit Skonto, Fälligkeiten & Spaß-Faktor im Blick ✨</p>
+    </div>
+
+    <div class="header-right">
+      <div class="status-legend">
+        <span><span class="dot dot-open"></span>offen</span>
+        <span><span class="dot dot-skonto"></span>Skonto-Phase</span>
+        <span><span class="dot dot-overdue"></span>überfällig</span>
+        <span><span class="dot dot-paid"></span>bezahlt</span>
       </div>
 
-      <div class="header-right">
-        <div class="status-legend">
-          <span><span class="dot dot-open"></span>offen</span>
-          <span><span class="dot dot-skonto"></span>Skonto-Phase</span>
-          <span><span class="dot dot-overdue"></span>überfällig</span>
-          <span><span class="dot dot-paid"></span>bezahlt</span>
+      <button id="themeToggle" class="theme-toggle">🦁</button>
+    </div>
+  </header>
+
+  <!-- ================ 3 SPALTEN LAYOUT ================ -->
+  <div class="layout">
+
+    <!-- ================ FORMULAR (LINKS) ================ -->
+    <section class="panel panel-form">
+      <h2>Neue Rechnung erfassen</h2>
+
+      <form id="invoiceForm">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label for="invoiceNumber">Re-Nr.&nbsp;<span class="req">*</span></label>
+            <input id="invoiceNumber" type="text" required />
+          </div>
+
+          <div class="form-field">
+            <label for="supplier">Lieferant&nbsp;<span class="req">*</span></label>
+            <input id="supplier" list="supplierDatalist" type="text" required />
+            <datalist id="supplierDatalist"></datalist>
+          </div>
+
+          <div class="form-field">
+            <label for="amount">Betrag (€)&nbsp;<span class="req">*</span></label>
+            <input id="amount" type="number" step="0.01" required />
+          </div>
+
+          <div class="form-field">
+            <label for="dueDate">Fälligkeitsdatum&nbsp;<span class="req">*</span></label>
+            <input id="dueDate" type="date" required />
+          </div>
+
+          <div class="form-field">
+            <label for="skontoPercent">Skonto (%)</label>
+            <select id="skontoPercent">
+              <option value="">–</option>
+              <option value="2">2 %</option>
+              <option value="3">3 %</option>
+              <option value="5">5 %</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="skontoDate">Skonto-Frist</label>
+            <input id="skontoDate" type="date" />
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="note">Notiz</label>
+            <textarea id="note" rows="3" placeholder="z.B. 2% Skonto bei Zahlung bis ..."></textarea>
+          </div>
+
+          <div class="form-field form-field-wide skonto-info" id="skontoInfo">
+            Kein Skonto ausgewählt.
+          </div>
         </div>
 
-        <button id="themeToggle" class="theme-toggle">🌞</button>
-      </div>
-    </header>
+        <div class="form-actions">
+          <button type="submit" class="btn primary" id="saveBtn">Rechnung speichern</button>
+          <button type="button" class="btn ghost" id="clearFormBtn">Felder leeren</button>
+        </div>
+      </form>
+    </section>
 
-    <main class="layout">
-      <!-- FORM -->
-      <section class="panel panel-form">
-  <h2>Neue Rechnung erfassen</h2>
 
-  <form id="invoiceForm">
+    <!-- ================ LISTE (MITTE) ================ -->
+    <section class="panel panel-list">
+      <h2>Übersicht offene Rechnungen</h2>
 
-    <div class="form-grid">
+      <div class="toolbar">
+        <div class="filters">
+          <button class="btn chip active" data-filter="open">Offen</button>
+          <button class="btn chip" data-filter="skonto">Skonto-Phase</button>
+          <button class="btn chip" data-filter="overdue">Überfällig</button>
+          <button class="btn chip" data-filter="paid">Bezahlt</button>
+          <button class="btn chip" data-filter="all">Alle</button>
+        </div>
 
-      <!-- Re-Nr -->
-      <div class="form-field">
-        <label for="invoiceNumber">Re-Nr.&nbsp;<span class="req">*</span></label>
-        <input id="invoiceNumber" type="text" required />
-      </div>
+        <div class="extra-filters">
+          <select id="monthFilter">
+            <option value="all">Alle Monate</option>
+          </select>
 
-      <!-- Lieferant -->
-      <div class="form-field">
-        <label for="supplier">Lieferant&nbsp;<span class="req">*</span></label>
-        <input id="supplier" list="supplierDatalist" type="text" required />
-        <datalist id="supplierDatalist"></datalist>
-      </div>
+          <select id="yearFilter">
+            <option value="all">Alle Jahre</option>
+          </select>
+        </div>
 
-      <!-- Betrag -->
-      <div class="form-field">
-        <label for="amount">Betrag (€)&nbsp;<span class="req">*</span></label>
-        <input id="amount" type="number" step="0.01" required />
-      </div>
-
-      <!-- Fälligkeitsdatum -->
-      <div class="form-field">
-        <label for="dueDate">Fälligkeitsdatum&nbsp;<span class="req">*</span></label>
-        <input id="dueDate" type="date" required />
+        <input type="text" id="searchInput" class="search-input"
+               placeholder="Suche nach Nummer, Lieferant oder Notiz">
       </div>
 
-      <!-- Skonto % -->
-      <div class="form-field">
-        <label for="skontoPercent">Skonto (%)</label>
-        <select id="skontoPercent">
-          <option value="">–</option>
-          <option value="2">2 %</option>
-          <option value="3">3 %</option>
-          <option value="5">5 %</option>
-        </select>
-      </div>
+      <div class="table-wrapper">
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th data-sort="invoice">Rechnungsnr.</th>
+              <th data-sort="supplier">Lieferant</th>
+              <th data-sort="amount" class="numeric">Betrag</th>
+              <th data-sort="skontoPercent" class="numeric">Skonto %</th>
+              <th class="numeric">Skonto (€)</th>
+              <th data-sort="skontoDate" class="numeric">Skonto bis</th>
+              <th data-sort="dueDate" class="numeric">Fällig am</th>
+              <th>Warnung</th>
+              <th>Bez.</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
 
-      <!-- Skonto-Frist -->
-      <div class="form-field">
-        <label for="skontoDate">Skonto-Frist</label>
-        <input id="skontoDate" type="date" />
+          <tbody id="invoiceTableBody">
+            <tr><td colspan="11" class="empty-state">Noch keine Rechnungen angelegt – oben eine neue erfassen 🔍</td></tr>
+          </tbody>
+        </table>
       </div>
+    </section>
 
-      <!-- Notiz -->
-      <div class="form-field form-field-wide">
-        <label for="note">Notiz</label>
-        <textarea id="note" rows="3" placeholder="z.B. 2% Skonto bei Zahlung bis ..."></textarea>
+
+    <!-- ================ LIEFERANTEN (RECHTS) ================ -->
+    <section class="panel panel-suppliers">
+      <h2>Lieferanten-Dashboard</h2>
+
+      <p>Klick auf ein Kästchen, um nur diesen Lieferanten zu sehen.</p>
+
+      <div class="supplier-cards" id="supplierCards"></div>
+
+      <div class="summary-box">
+        <strong>Gesamt-Summen</strong><br>
+        Offen gesamt: <span id="sumOpen">0.00 €</span><br>
+        Überfällig: <span id="sumOverdue">0.00 €</span><br>
+        In Skonto-Phase: <span id="sumSkonto">0.00 €</span>
       </div>
+    </section>
 
-      <div class="form-field form-field-wide skonto-info" id="skontoInfo">
-        Kein Skonto ausgewählt.
-      </div>
-    </div>
+  </div><!-- layout -->
 
-    <div class="form-actions">
-      <button type="submit" class="btn primary" id="saveBtn">Rechnung speichern</button>
-      <button type="button" class="btn ghost" id="clearFormBtn">Felder leeren</button>
-    </div>
-  </form>
-</section>
+</div><!-- app -->
+
+
+<script src="script.js"></script>
+</body>
+</html>
