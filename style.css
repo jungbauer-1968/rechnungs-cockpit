@@ -1,85 +1,39 @@
 /* ------------------------------
-   GLOBAL
+   ROOT COLORS – Candy Shop Pastell
 --------------------------------*/
 :root {
-  /* Candy Background */
-  --bg: #fff8ff;
+  --bg: #ffffff;
 
-  /* Panel soft gradients */
-  --bg-panel: linear-gradient(145deg, #fff, #ffe9ff);
-  --bg-accent: linear-gradient(145deg, #ffe9ff, #fff);
-
-  /* Candy Text */
-  --text: #3a2e3d;
-  --text-light: #6a5b70;
-
-  /* Candy Buttons & Highlights */
-  --primary: #ff7be0;
-  --primary-dark: #e36fcc;
-
-  /* Mixed Cute Colors */
-  --accent-blue: #a7d5ff;
-  --accent-green: #b9f8c6;
-  --accent-yellow: #ffe8a3;
-  --accent-red: #ff8b8b;
-  --accent-purple: #e0b3ff;
-  --accent-orange: #ffd2a6;
-  --accent-mint: #b5fff1;
-
-  /* Borders & Shadows */
-  --border: #f0d8ff;
-  --shadow: rgba(0, 0, 0, 0.06);
-}
-.panel-form { background: var(--accent-blue); }
-.panel-list { background: var(--accent-mint); }
-.panel-suppliers { background: var(--accent-purple); }
-
-.summary-box { background: var(--accent-yellow); }
-
-.row-open { background: #e8f5ff; }
-.row-skonto { background: #fffbe0; }
-.row-overdue { background: #ffe4e4; }
-.row-paid { background: #e5ffe9; }
-
-
-  --text: #3a2e3d;
-  --text-light: #6a5b70;
-
-  --primary: #ff7be0;
-  --primary-dark: #e36fcc;
-
-  --accent-blue: #72b7ff;
-  --accent-green: #5bd55b;
-  --accent-yellow: #ffd861;
-  --accent-red: #ff6f6f;
-  --accent-purple: #c98aff;
+  --panel-blue: #dff1ff;       /* Babyblau */
+  --panel-mint: #e1fff6;       /* Mintgrün */
+  --panel-lavender: #f2e4ff;   /* Lavendel */
+  --panel-peach: #ffe9d6;      /* Peach */
+  --panel-pink: #ffe3f2;       /* Rosa */
 
   --border: #e6d9ee;
+  --text: #3a2e3d;
+  --text-light: #6a5b70;
+
+  --primary: #ff7be0;
+  --primary-dark: #e36fcc;
+
+  --blue: #82c8ff;
+  --mint: #9effe4;
+  --yellow: #ffe594;
+  --red: #ff8b8b;
+  --green: #8dff9d;
+
   --shadow: rgba(0, 0, 0, 0.08);
 }
 
-/* Dark mode */
-body.dark {
-  --bg: #1e1b22;
-  --bg-panel: #2a2730;
-  --bg-accent: #3a3643;
-
-  --text: #f1e8ff;
-  --text-light: #bea9cc;
-
-  --primary: #ff9df0;
-  --primary-dark: #ff82eb;
-
-  --border: #4b4450;
-  --shadow: rgba(0, 0, 0, 0.45);
-}
-
+/* ------------------------------
+   GENERAL
+--------------------------------*/
 body {
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
   background: var(--bg);
+  font-family: "Segoe UI", sans-serif;
   color: var(--text);
-  transition: background 0.25s, color 0.25s;
 }
 
 .app {
@@ -93,13 +47,14 @@ body {
 --------------------------------*/
 .app-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
 }
 
 .title-block h1 {
   margin: 0;
-  font-size: 2.4rem;
+  font-size: 2.3rem;
   color: var(--primary);
 }
 
@@ -108,42 +63,31 @@ body {
   color: var(--text-light);
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.status-legend {
-  display: flex;
-  gap: 12px;
+.status-legend span {
+  margin-right: 10px;
   font-size: 0.9rem;
 }
 
 .dot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
   display: inline-block;
+  border-radius: 50%;
+  margin-right: 4px;
 }
 
-.dot-open { background: var(--accent-blue); }
-.dot-skonto { background: var(--accent-yellow); }
-.dot-overdue { background: var(--accent-red); }
-.dot-paid { background: var(--accent-green); }
+.dot-open { background: var(--blue); }
+.dot-skonto { background: var(--yellow); }
+.dot-overdue { background: var(--red); }
+.dot-paid { background: var(--green); }
 
 .theme-toggle {
-  background: var(--bg-panel);
-  border: 2px solid var(--border);
-  padding: 8px 14px;
-  border-radius: 12px;
-  cursor: pointer;
+  background: var(--panel-pink);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 10px;
   font-size: 1.3rem;
-  transition: 0.2s;
-}
-.theme-toggle:hover {
-  background: var(--primary);
-  color: white;
+  cursor: pointer;
 }
 
 /* ------------------------------
@@ -151,67 +95,43 @@ body {
 --------------------------------*/
 .layout {
   display: flex;
-  margin-top: 25px;
   gap: 20px;
 }
 
 .panel {
-  background: var(--bg-panel);
   padding: 20px;
-  border-radius: 18px;
-  box-shadow: 0 4px 15px var(--shadow);
+  border-radius: 15px;
   border: 1px solid var(--border);
+  box-shadow: 0 4px 14px var(--shadow);
 }
 
-.panel-form {
-  flex: 1.3;
-}
-
-.panel-list {
-  flex: 2.2;
-}
-
-.panel-suppliers {
-  flex: 1;
-}
+.panel-form { background: var(--panel-blue); flex: 1.2; }
+.panel-list { background: var(--panel-mint); flex: 2.2; }
+.panel-suppliers { background: var(--panel-lavender); flex: 1; }
 
 /* ------------------------------
    FORMULAR
 --------------------------------*/
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.form-field-wide {
-  grid-column: span 2;
-}
+.form-field-wide { grid-column: span 2; }
 
-.form-field label {
-  display: block;
-  font-size: 0.88rem;
-  margin-bottom: 6px;
-}
+label { font-size: 0.9rem; margin-bottom: 5px; display: block; }
 
-.form-field input,
-.form-field textarea,
-.form-field select {
+input, select, textarea {
   width: 100%;
   padding: 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--bg-accent);
   font-size: 1rem;
+  background: #ffffff;
 }
 
-.skonto-info {
-  padding: 10px;
-  background: #fff0f8;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  color: var(--text-light);
-}
+textarea { resize: none; }
 
 .form-actions {
   margin-top: 15px;
@@ -219,41 +139,43 @@ body {
   gap: 10px;
 }
 
-/* Buttons */
 .btn {
   padding: 10px 16px;
   border-radius: 12px;
-  font-size: 1rem;
   cursor: pointer;
   border: none;
-  transition: 0.2s;
+  font-size: 1rem;
 }
 
 .btn.primary {
   background: var(--primary);
   color: white;
 }
-
-.btn.primary:hover {
-  background: var(--primary-dark);
-}
+.btn.primary:hover { background: var(--primary-dark); }
 
 .btn.ghost {
-  background: transparent;
+  background: var(--panel-pink);
   border: 1px solid var(--primary);
   color: var(--primary);
 }
-
 .btn.ghost:hover {
   background: var(--primary);
   color: white;
 }
 
+.skonto-info {
+  background: var(--panel-peach);
+  padding: 10px;
+  border-radius: 10px;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
 /* ------------------------------
-   FILTERS
+   FILTERS / SEARCH
 --------------------------------*/
 .filters .chip {
-  background: var(--bg-accent);
+  background: var(--panel-peach);
   border: 1px solid var(--border);
 }
 .chip.active {
@@ -261,38 +183,29 @@ body {
   color: white;
 }
 
-/* ------------------------------
-   SEARCH BAR
---------------------------------*/
 .search input {
   padding: 8px 12px;
+  width: 250px;
   border-radius: 10px;
+  background: #fff;
   border: 1px solid var(--border);
-  background: var(--bg-accent);
-  width: 240px;
 }
 
 /* ------------------------------
    TABLE
 --------------------------------*/
-.table-wrapper {
-  margin-top: 15px;
-  overflow-x: auto;
-}
+.table-wrapper { margin-top: 15px; overflow-x: auto; }
 
 .invoice-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.92rem;
 }
 
 .invoice-table th {
-  text-align: left;
+  background: var(--panel-pink);
   padding: 10px;
-  background: var(--bg-accent);
-  cursor: pointer;
-  user-select: none;
   border-bottom: 2px solid var(--border);
+  cursor: pointer;
 }
 
 .invoice-table td {
@@ -300,74 +213,52 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-/* Zeilenfarben je nach Status */
-.row-open { background: #e8f3ff; }
-.row-skonto { background: #fffbe0; }
-.row-overdue { background: #ffe8e8; }
-.row-paid { background: #e6ffe6; }
-
 .numeric { text-align: right; }
 
-/* ------------------------------
-   WARN-ICONS (sanftes Pulsieren)
---------------------------------*/
+/* Farben für Status-Zeilen */
+.row-open { background: #eaf5ff; }
+.row-skonto { background: #fff8d6; }
+.row-overdue { background: #ffeaea; }
+.row-paid { background: #e7ffe9; }
+
+/* Warnung Icons (pulsierend) */
 @keyframes pulseSoft {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
+  0% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.7; }
 }
 
 .warn-icon {
+  animation: pulseSoft 1.7s infinite;
   font-size: 1.4rem;
-  animation: pulseSoft 1.8s infinite;
 }
 
 /* ------------------------------
-   BUTTONS (Aktionen)
+   ACTION BUTTONS
 --------------------------------*/
 .action-btn {
   border: none;
   padding: 6px 12px;
   border-radius: 10px;
-  font-size: 0.9rem;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 0.9rem;
 }
 
-.edit-btn {
-  background: var(--accent-yellow);
-  color: #5a3c00;
-}
+.edit-btn { background: var(--yellow); }
+.delete-btn { background: var(--red); color: white; }
 
-.delete-btn {
-  background: var(--accent-red);
-  color: white;
-}
-
-.edit-btn:hover {
-  background: #ffe483;
-}
-
-.delete-btn:hover {
-  background: #ff8080;
-}
+.edit-btn:hover { background: #fff2a8; }
+.delete-btn:hover { background: #ff9e9e; }
 
 /* ------------------------------
    SUPPLIER CARDS
 --------------------------------*/
-.supplier-cards {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.supplier-cards { margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 
 .supplier-card {
+  background: var(--panel-pink);
   padding: 12px;
-  border-radius: 14px;
-  background: var(--bg-accent);
+  border-radius: 12px;
   border: 1px solid var(--border);
   cursor: pointer;
   transition: 0.2s;
@@ -378,24 +269,22 @@ body {
   box-shadow: 0 0 0 3px var(--primary);
 }
 
-.supplier-card:hover {
-  transform: translateX(5px);
-}
+.supplier-card:hover { transform: translateX(5px); }
 
 /* ------------------------------
    SUMMARY
 --------------------------------*/
 .summary-box {
-  margin-top: 20px;
+  background: var(--panel-peach);
   padding: 12px;
-  background: var(--bg-accent);
   border-radius: 12px;
+  margin-top: 20px;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
-  margin: 6px 0;
+  margin-bottom: 6px;
 }
 
 /* ------------------------------
@@ -403,7 +292,7 @@ body {
 --------------------------------*/
 .empty-state {
   text-align: center;
-  padding: 25px;
-  font-size: 1.1rem;
+  padding: 20px;
   color: var(--text-light);
+  font-size: 1.1rem;
 }
