@@ -1,173 +1,631 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rechnungs-Cockpit</title>
-<link rel="stylesheet" href="style.css" />
+
+<style>
+/* ---------------------------------------------------------
+   ROOT COLORS
+--------------------------------------------------------- */
+:root {
+  --bg: #ffffff;
+
+  --panel-blue: #dff1ff;      /* links */
+  --panel-lila: #f0e4ff;      /* mitte */
+  --panel-tuerkis: #d6faff;   /* rechts */
+  --panel-peach: #ffe7cf;
+
+  --text: #262335;
+  --text-light: #6b647a;
+  --border: #e1d7f0;
+  --shadow: rgba(15, 23, 42, 0.08);
+
+  --primary: #ff7be0;
+  --primary-dark: #e24ec0;
+
+  --blue: #60a5fa;
+  --yellow: #facc15;
+  --red: #f97373;
+  --green: #22c55e;
+
+  --rainbow: linear-gradient(
+    90deg,
+    #ff9f4a,
+    #ff6fae,
+    #b86dff,
+    #6bb7ff,
+    #00bcd4
+  );
+}
+
+/* DARK MODE */
+body.dark {
+  --bg: #0f172a;
+
+  --panel-blue: #1e293b;
+  --panel-lila: #312e81;
+  --panel-tuerkis: #083344;
+  --panel-peach: #1f2937;
+
+  --text: #e5e7eb;
+  --text-light: #9ca3af;
+  --border: #374151;
+  --shadow: rgba(0,0,0,0.7);
+
+  --primary: #fb7bbf;
+  --primary-dark: #f472b6;
+}
+
+/* ---------------------------------------------------------
+   GLOBAL
+--------------------------------------------------------- */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", sans-serif;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ---------------------------------------------------------
+   HEADER
+--------------------------------------------------------- */
+.app-header {
+  background: linear-gradient(90deg,
+    rgba(255,159,74,0.12),
+    rgba(255,111,174,0.12),
+    rgba(184,109,255,0.12),
+    rgba(107,183,255,0.12),
+    rgba(0,188,212,0.12)
+  );
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title-block h1 {
+  margin: 0;
+  font-size: 2.6rem;
+  background: var(--rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+}
+
+.title-block p {
+  margin: 4px 0 0;
+  color: var(--text-light);
+}
+
+.header-right {
+  text-align: right;
+}
+
+.status-legend span {
+  margin-left: 10px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%; display: inline-block;
+  margin-right: 4px;
+}
+.dot-open { background: var(--blue); }
+.dot-skonto { background: var(--yellow); }
+.dot-overdue { background: var(--red); }
+.dot-paid { background: var(--green); }
+
+.theme-toggle {
+  margin-top: 10px;
+  background: #ffffffaa;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+/* ---------------------------------------------------------
+   LAYOUT
+--------------------------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: 1.2fr 2fr 1.2fr;
+  gap: 20px;
+}
+
+/* Panels */
+.panel {
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 20px var(--shadow);
+}
+
+.panel-form { background: var(--panel-blue); }
+.panel-list { background: var(--panel-lila); }
+.panel-suppliers { background: var(--panel-tuerkis); }
+
+/* ---------------------------------------------------------
+   FORMULAR
+--------------------------------------------------------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* beide gleich */
+  gap: 16px;
+}
+
+.form-field label {
+  margin-bottom: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 1rem;
+  height: 45px;
+}
+
+.form-field textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 1rem;
+  min-height: 70px;
+}
+
+.form-field-wide {
+  grid-column: span 2;
+}
+
+.form-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.req { color: var(--red); }
+
+/* ---------------------------------------------------------
+   BUTTONS
+--------------------------------------------------------- */
+.btn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-dark); }
+.btn.ghost { border: 1px solid var(--primary); background: transparent; color: var(--primary); }
+.btn.ghost:hover { background: var(--primary); color: #fff; }
+
+/* ---------------------------------------------------------
+   TABELLE
+--------------------------------------------------------- */
+.table-wrapper {
+  background: #ffffffaa;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-table th,
+.invoice-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.numeric { text-align: right; }
+
+.row-open { background: #eaf5ff; }
+.row-skonto { background: #fff4c2; }
+.row-overdue { background: #ffd6d6; }
+.row-paid { background: #d9ffe3; }
+
+/* ---------------------------------------------------------
+   SUPPLIER CARDS
+--------------------------------------------------------- */
+.supplier-card {
+  background: #ffffffbb;
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.supplier-card:hover {
+  background: #fff;
+}
+
+/* ---------------------------------------------------------
+   EMPTY STATE
+--------------------------------------------------------- */
+.empty-state {
+  text-align: center;
+  color: var(--text-light);
+  padding: 20px;
+}
+</style>
 </head>
 
 <body>
-
 <div class="app">
 
-  <!-- ================= HEADER ================= -->
-  <header class="app-header">
-    <div class="title-block">
-      <h1>Rechnungs-Cockpit</h1>
-      <p>Offene Eingangsrechnungen mit Skonto, Fälligkeiten & Spaß-Faktor im Blick ✨</p>
+<!-- HEADER -->
+<header class="app-header">
+  <div class="title-block">
+    <h1>Rechnungs-Cockpit</h1>
+    <p>Alles im Blick – Skonto, Fälligkeiten, Lieferanten 💖</p>
+  </div>
+
+  <div class="header-right">
+    <div class="status-legend">
+      <span><span class="dot dot-open"></span>offen</span>
+      <span><span class="dot dot-skonto"></span>Skonto</span>
+      <span><span class="dot dot-overdue"></span>überfällig</span>
+      <span><span class="dot dot-paid"></span>bezahlt</span>
+    </div>
+    <button id="themeToggle" class="theme-toggle">🌞</button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+<!-- FORM -->
+<section class="panel panel-form">
+  <h2>Neue Rechnung erfassen</h2>
+
+  <form id="invoiceForm">
+    <div class="form-grid">
+
+      <div class="form-field">
+        <label>Rechnungsnummer <span class="req">*</span></label>
+        <input id="invoiceNumber" required>
+      </div>
+
+      <div class="form-field">
+        <label>Lieferant <span class="req">*</span></label>
+        <input id="supplier" required list="supplierList">
+        <datalist id="supplierList"></datalist>
+      </div>
+
+      <div class="form-field">
+        <label>Betrag (€) <span class="req">*</span></label>
+        <input id="amount" type="number" step="0.01" required>
+      </div>
+
+      <div class="form-field">
+        <label>Fälligkeitsdatum <span class="req">*</span></label>
+        <input id="dueDate" type="date" required>
+      </div>
+
+      <div class="form-field">
+        <label>Skonto (%)</label>
+        <select id="skontoPercent">
+          <option value="">–</option>
+          <option value="2">2%</option>
+          <option value="3">3%</option>
+          <option value="5">5%</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label>Skonto bis</label>
+        <input id="skontoDate" type="date">
+      </div>
+
+      <div class="form-field form-field-wide">
+        <label>Notiz</label>
+        <textarea id="note"></textarea>
+      </div>
+
     </div>
 
-    <div class="header-right">
-      <div class="status-legend">
-        <span><span class="dot dot-open"></span>offen</span>
-        <span><span class="dot dot-skonto"></span>Skonto-Phase</span>
-        <span><span class="dot dot-overdue"></span>überfällig</span>
-        <span><span class="dot dot-paid"></span>bezahlt</span>
-      </div>
-
-      <button id="themeToggle" class="theme-toggle">🦁</button>
+    <div class="form-actions">
+      <button class="btn primary" type="submit">Rechnung speichern</button>
+      <button class="btn ghost" type="button" id="clearForm">Felder leeren</button>
     </div>
-  </header>
+  </form>
+</section>
 
-  <!-- ================ 3 SPALTEN LAYOUT ================ -->
-  <div class="layout">
+<!-- LIST -->
+<section class="panel panel-list">
+  <h2>Offene Rechnungen</h2>
 
-    <!-- ================ FORMULAR (LINKS) ================ -->
-    <section class="panel panel-form">
-      <h2>Neue Rechnung erfassen</h2>
+  <div class="toolbar">
+    <button class="btn chip" data-status="all">Alle</button>
+    <button class="btn chip active" data-status="open">Offen</button>
+    <button class="btn chip" data-status="skonto">Skonto</button>
+    <button class="btn chip" data-status="overdue">Überfällig</button>
+    <button class="btn chip" data-status="paid">Bezahlt</button>
 
-      <form id="invoiceForm">
-        <div class="form-grid">
+    <input placeholder="Suchen..." id="search">
+  </div>
 
-          <div class="form-field">
-            <label for="invoiceNumber">Re-Nr.&nbsp;<span class="req">*</span></label>
-            <input id="invoiceNumber" type="text" required />
-          </div>
+  <div class="table-wrapper">
+    <table class="invoice-table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Re-Nr.</th>
+          <th>Lieferant</th>
+          <th class="numeric">Betrag</th>
+          <th class="numeric">Sk %</th>
+          <th class="numeric">Sk €</th>
+          <th>Sk. bis</th>
+          <th>Fälligkeit</th>
+          <th>Warnung</th>
+          <th>Bez.</th>
+          <th>Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceTableBody">
+        <tr><td colspan="11" class="empty-state">Noch nichts erfasst 💖</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
-          <div class="form-field">
-            <label for="supplier">Lieferant&nbsp;<span class="req">*</span></label>
-            <input id="supplier" list="supplierDatalist" type="text" required />
-            <datalist id="supplierDatalist"></datalist>
-          </div>
+<!-- SUPPLIERS -->
+<section class="panel panel-suppliers">
+  <h2>Lieferanten</h2>
+  <div id="supplierCards"></div>
 
-          <div class="form-field">
-            <label for="amount">Betrag (€)&nbsp;<span class="req">*</span></label>
-            <input id="amount" type="number" step="0.01" required />
-          </div>
+  <div class="summary-box">
+    <strong>Summen</strong><br>
+    Offen: <span id="sumOpen">0 €</span><br>
+    Überfällig: <span id="sumOverdue">0 €</span><br>
+    Skonto: <span id="sumSkonto">0 €</span>
+  </div>
+</section>
 
-          <div class="form-field">
-            <label for="dueDate">Fälligkeitsdatum&nbsp;<span class="req">*</span></label>
-            <input id="dueDate" type="date" required />
-          </div>
-
-          <div class="form-field">
-            <label for="skontoPercent">Skonto (%)</label>
-            <select id="skontoPercent">
-              <option value="">–</option>
-              <option value="2">2 %</option>
-              <option value="3">3 %</option>
-              <option value="5">5 %</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="skontoDate">Skonto-Frist</label>
-            <input id="skontoDate" type="date" />
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="note">Notiz</label>
-            <textarea id="note" rows="3" placeholder="z.B. 2% Skonto bei Zahlung bis ..."></textarea>
-          </div>
-
-          <div class="form-field form-field-wide skonto-info" id="skontoInfo">
-            Kein Skonto ausgewählt.
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn primary" id="saveBtn">Rechnung speichern</button>
-          <button type="button" class="btn ghost" id="clearFormBtn">Felder leeren</button>
-        </div>
-      </form>
-    </section>
-
-
-    <!-- ================ LISTE (MITTE) ================ -->
-    <section class="panel panel-list">
-      <h2>Übersicht offene Rechnungen</h2>
-
-      <div class="toolbar">
-        <div class="filters">
-          <button class="btn chip active" data-filter="open">Offen</button>
-          <button class="btn chip" data-filter="skonto">Skonto-Phase</button>
-          <button class="btn chip" data-filter="overdue">Überfällig</button>
-          <button class="btn chip" data-filter="paid">Bezahlt</button>
-          <button class="btn chip" data-filter="all">Alle</button>
-        </div>
-
-        <div class="extra-filters">
-          <select id="monthFilter">
-            <option value="all">Alle Monate</option>
-          </select>
-
-          <select id="yearFilter">
-            <option value="all">Alle Jahre</option>
-          </select>
-        </div>
-
-        <input type="text" id="searchInput" class="search-input"
-               placeholder="Suche nach Nummer, Lieferant oder Notiz">
-      </div>
-
-      <div class="table-wrapper">
-        <table class="invoice-table">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th data-sort="invoice">Rechnungsnr.</th>
-              <th data-sort="supplier">Lieferant</th>
-              <th data-sort="amount" class="numeric">Betrag</th>
-              <th data-sort="skontoPercent" class="numeric">Skonto %</th>
-              <th class="numeric">Skonto (€)</th>
-              <th data-sort="skontoDate" class="numeric">Skonto bis</th>
-              <th data-sort="dueDate" class="numeric">Fällig am</th>
-              <th>Warnung</th>
-              <th>Bez.</th>
-              <th>Aktion</th>
-            </tr>
-          </thead>
-
-          <tbody id="invoiceTableBody">
-            <tr><td colspan="11" class="empty-state">Noch keine Rechnungen angelegt – oben eine neue erfassen 🔍</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-
-    <!-- ================ LIEFERANTEN (RECHTS) ================ -->
-    <section class="panel panel-suppliers">
-      <h2>Lieferanten-Dashboard</h2>
-
-      <p>Klick auf ein Kästchen, um nur diesen Lieferanten zu sehen.</p>
-
-      <div class="supplier-cards" id="supplierCards"></div>
-
-      <div class="summary-box">
-        <strong>Gesamt-Summen</strong><br>
-        Offen gesamt: <span id="sumOpen">0.00 €</span><br>
-        Überfällig: <span id="sumOverdue">0.00 €</span><br>
-        In Skonto-Phase: <span id="sumSkonto">0.00 €</span>
-      </div>
-    </section>
-
-  </div><!-- layout -->
+</div><!-- layout -->
 
 </div><!-- app -->
 
+<script>
+/* =====================================================
+   STORAGE
+===================================================== */
+function loadInvoices() {
+  return JSON.parse(localStorage.getItem("cockpitInvoices") || "[]");
+}
+function saveInvoices(list) {
+  localStorage.setItem("cockpitInvoices", JSON.stringify(list));
+}
 
-<script src="script.js"></script>
+/* =====================================================
+   DOM ELEMENTS
+===================================================== */
+const form = document.getElementById("invoiceForm");
+const tableBody = document.getElementById("invoiceTableBody");
+const supplierCards = document.getElementById("supplierCards");
+const search = document.getElementById("search");
+
+const sumOpen = document.getElementById("sumOpen");
+const sumOverdue = document.getElementById("sumOverdue");
+const sumSkonto = document.getElementById("sumSkonto");
+
+const themeToggle = document.getElementById("themeToggle");
+
+/* =====================================================
+   EVENT: THEME
+===================================================== */
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  themeToggle.textContent =
+    document.body.classList.contains("dark") ? "🌙" : "🌞";
+});
+
+/* =====================================================
+   EVENT: FORM SUBMIT
+===================================================== */
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const inv = {
+    id: Date.now(),
+    number: document.getElementById("invoiceNumber").value,
+    supplier: document.getElementById("supplier").value.toUpperCase(),
+    amount: parseFloat(document.getElementById("amount").value),
+    dueDate: document.getElementById("dueDate").value,
+    skontoPercent: document.getElementById("skontoPercent").value,
+    skontoDate: document.getElementById("skontoDate").value,
+    note: document.getElementById("note").value,
+    paid: false
+  };
+
+  const list = loadInvoices();
+  list.push(inv);
+  saveInvoices(list);
+
+  form.reset();
+  updateUI();
+});
+
+/* =====================================================
+   TABLE RENDERING
+===================================================== */
+function updateUI() {
+  const list = loadInvoices();
+
+  if (list.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="11" class="empty-state">Noch keine Rechnungen 💖</td></tr>`;
+    supplierCards.innerHTML = "";
+    sumOpen.textContent = "0 €";
+    sumOverdue.textContent = "0 €";
+    sumSkonto.textContent = "0 €";
+    return;
+  }
+
+  renderTable(list);
+  renderSuppliers(list);
+  renderSummary(list);
+}
+
+function renderTable(list) {
+  const query = search.value.toLowerCase();
+
+  const filtered = list.filter(inv =>
+    inv.number.toLowerCase().includes(query) ||
+    inv.supplier.toLowerCase().includes(query) ||
+    inv.note.toLowerCase().includes(query)
+  );
+
+  let rows = "";
+
+  filtered.forEach(inv => {
+    const today = new Date();
+    const due = new Date(inv.dueDate);
+    const sk = inv.skontoDate ? new Date(inv.skontoDate) : null;
+
+    let rowClass = "row-open";
+    let warn = "";
+
+    if (inv.paid) {
+      rowClass = "row-paid";
+    } else if (due < today) {
+      rowClass = "row-overdue";
+      warn = "❗";
+    } else if (sk && sk >= today) {
+      rowClass = "row-skonto";
+    }
+
+    const skAmount = inv.skontoPercent
+      ? (inv.amount * (inv.skontoPercent / 100)).toFixed(2)
+      : "-";
+
+    rows += `
+      <tr class="${rowClass}">
+        <td>${inv.paid ? "✔" : warn ? "❗" : "🔵"}</td>
+        <td>${inv.number}</td>
+        <td>${inv.supplier}</td>
+        <td class="numeric">${inv.amount.toFixed(2)}</td>
+        <td class="numeric">${inv.skontoPercent || "-"}</td>
+        <td class="numeric">${skAmount}</td>
+        <td>${inv.skontoDate || "-"}</td>
+        <td>${inv.dueDate}</td>
+        <td>${warn}</td>
+        <td>
+          <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${inv.paid ? "checked":""}>
+        </td>
+        <td>
+          <button class="deleteBtn" data-id="${inv.id}">❌</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = rows;
+
+  attachRowEvents();
+}
+
+/* =====================================================
+   ROW EVENTS
+===================================================== */
+function attachRowEvents() {
+
+  document.querySelectorAll(".paidCheck").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = Number(cb.dataset.id);
+      const list = loadInvoices();
+      const inv = list.find(a => a.id === id);
+      inv.paid = cb.checked;
+      saveInvoices(list);
+      updateUI();
+    });
+  });
+
+  document.querySelectorAll(".deleteBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      let list = loadInvoices();
+      list = list.filter(a => a.id !== id);
+      saveInvoices(list);
+      updateUI();
+    });
+  });
+}
+
+/* =====================================================
+   SUPPLIERS
+===================================================== */
+function renderSuppliers(list) {
+  const suppliers = [...new Set(list.map(a => a.supplier))];
+
+  supplierCards.innerHTML = suppliers.map(s => `
+    <div class="supplier-card" data-supplier="${s}">${s}</div>
+  `).join("");
+
+  document.querySelectorAll(".supplier-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const supplier = card.dataset.supplier;
+      renderTable(list.filter(a => a.supplier === supplier));
+    });
+  });
+}
+
+/* =====================================================
+   SUMMARIES
+===================================================== */
+function renderSummary(list) {
+
+  let open = 0, overdue = 0, skonto = 0;
+  const now = new Date();
+
+  list.forEach(inv => {
+
+    if (!inv.paid) open += inv.amount;
+
+    if (!inv.paid && new Date(inv.dueDate) < now)
+      overdue += inv.amount;
+
+    if (!inv.paid && inv.skontoDate && new Date(inv.skontoDate) >= now)
+      skonto += inv.amount;
+
+  });
+
+  sumOpen.textContent = open.toFixed(2) + " €";
+  sumOverdue.textContent = overdue.toFixed(2) + " €";
+  sumSkonto.textContent = skonto.toFixed(2) + " €";
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+search.addEventListener("input", updateUI);
+document.getElementById("clearForm").addEventListener("click", () => form.reset());
+updateUI();
+
+</script>
+
 </body>
 </html>
