@@ -29,7 +29,7 @@
     </header>
 
     <main class="layout">
-      <!-- Formular -->
+      <!-- FORMULAR -->
       <section class="panel panel-form">
         <h2>Neue Rechnung erfassen</h2>
         <form id="invoiceForm">
@@ -87,7 +87,7 @@
         </form>
       </section>
 
-      <!-- Übersicht -->
+      <!-- LISTE -->
       <section class="panel panel-list">
         <div class="list-header">
           <h2>Übersicht offene Rechnungen</h2>
@@ -101,20 +101,12 @@
             </div>
 
             <div class="extra-filters">
-              <select id="monthFilter">
-                <option value="all">Alle Monate</option>
-              </select>
-              <select id="yearFilter">
-                <option value="all">Alle Jahre</option>
-              </select>
+              <select id="monthFilter"><option value="all">Alle Monate</option></select>
+              <select id="yearFilter"><option value="all">Alle Jahre</option></select>
             </div>
 
             <div class="search">
-              <input
-                id="searchInput"
-                type="text"
-                placeholder="Suche nach Nummer, Lieferant oder Notiz..."
-              />
+              <input id="searchInput" type="text" placeholder="Suche nach Nummer, Lieferant oder Notiz..." />
             </div>
           </div>
         </div>
@@ -136,36 +128,23 @@
                 <th>Aktionen</th>
               </tr>
             </thead>
-            <tbody id="invoiceTableBody">
-              <!-- wird per JS gefüllt -->
-            </tbody>
+            <tbody id="invoiceTableBody"></tbody>
           </table>
-          <div id="emptyState" class="empty-state">
-            Noch keine Rechnungen angelegt – oben eine neue erfassen 🍭
-          </div>
+          <div id="emptyState" class="empty-state">Noch keine Rechnungen angelegt 🍭</div>
         </div>
       </section>
 
-      <!-- Lieferanten & Summen -->
+      <!-- LIEFERANTEN -->
       <aside class="panel panel-suppliers">
         <h2>Lieferanten-Dashboard</h2>
         <p class="hint">Klick auf ein Kästchen, um nur diesen Lieferanten zu sehen.</p>
-
-        <div id="supplierCards" class="supplier-cards">
-          <!-- Cards kommen aus JS -->
-        </div>
+        <div id="supplierCards" class="supplier-cards"></div>
 
         <div class="summary-box">
           <h3>Gesamt-Summen</h3>
-          <div class="summary-row">
-            <span>Offen gesamt:</span><span id="sumOpen">€ 0,00</span>
-          </div>
-          <div class="summary-row">
-            <span>Überfällig:</span><span id="sumOverdue">€ 0,00</span>
-          </div>
-          <div class="summary-row">
-            <span>In Skonto-Phase:</span><span id="sumSkonto">€ 0,00</span>
-          </div>
+          <div class="summary-row"><span>Offen gesamt:</span><span id="sumOpen">€ 0,00</span></div>
+          <div class="summary-row"><span>Überfällig:</span><span id="sumOverdue">€ 0,00</span></div>
+          <div class="summary-row"><span>In Skonto-Phase:</span><span id="sumSkonto">€ 0,00</span></div>
         </div>
       </aside>
     </main>
