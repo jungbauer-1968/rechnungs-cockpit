@@ -2,9 +2,45 @@
    GLOBAL
 --------------------------------*/
 :root {
-  --bg: #fdf7ff;
-  --bg-panel: #ffffff;
-  --bg-accent: #ffe6ff;
+  /* Candy Background */
+  --bg: #fff8ff;
+
+  /* Panel soft gradients */
+  --bg-panel: linear-gradient(145deg, #fff, #ffe9ff);
+  --bg-accent: linear-gradient(145deg, #ffe9ff, #fff);
+
+  /* Candy Text */
+  --text: #3a2e3d;
+  --text-light: #6a5b70;
+
+  /* Candy Buttons & Highlights */
+  --primary: #ff7be0;
+  --primary-dark: #e36fcc;
+
+  /* Mixed Cute Colors */
+  --accent-blue: #a7d5ff;
+  --accent-green: #b9f8c6;
+  --accent-yellow: #ffe8a3;
+  --accent-red: #ff8b8b;
+  --accent-purple: #e0b3ff;
+  --accent-orange: #ffd2a6;
+  --accent-mint: #b5fff1;
+
+  /* Borders & Shadows */
+  --border: #f0d8ff;
+  --shadow: rgba(0, 0, 0, 0.06);
+}
+.panel-form { background: var(--accent-blue); }
+.panel-list { background: var(--accent-mint); }
+.panel-suppliers { background: var(--accent-purple); }
+
+.summary-box { background: var(--accent-yellow); }
+
+.row-open { background: #e8f5ff; }
+.row-skonto { background: #fffbe0; }
+.row-overdue { background: #ffe4e4; }
+.row-paid { background: #e5ffe9; }
+
 
   --text: #3a2e3d;
   --text-light: #6a5b70;
