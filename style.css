@@ -405,3 +405,7 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+label .req {
+  color: var(--red);
+  font-weight: 700;
+}
