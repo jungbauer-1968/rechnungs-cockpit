@@ -181,66 +181,56 @@ body.dark .theme-toggle {
 --------------------------------*/
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* beide Spalten gleich breit */
-  gap: 14px;
+  grid-template-columns: 1fr 1fr; /* zwei PERFECT gleiche Spalten */
+  gap: 16px;
 }
 
-.form-field {
-  width: 100%;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-  width: 100%; /* feld immer volle breite */
-}
-
-
-/* Fix for misalignment !! */
+/* Alle Felder haben gleiche Breite */
 .form-field {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-label {
-  margin-bottom: 4px;
-  font-size: 0.9rem;
+/* Labels immer einzeilig */
+.form-field label {
+  font-size: 0.92rem;
   font-weight: 600;
+  margin-bottom: 6px;
+  white-space: nowrap;
 }
 
-input,
-select,
-textarea {
+/* Alle Input-Felder exakt gleich groß */
+.form-field input,
+.form-field select,
+.form-field textarea {
   width: 100%;
-  padding: 10px;
+  padding: 11px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
   font-size: 1rem;
+  height: 42px; /* ← FIX: gleiche Höhe für ALLE Felder */
   background: white;
+  box-sizing: border-box;
 }
 
-textarea {
-  resize: vertical;
-  min-height: 60px;
+/* textarea darf größer sein */
+.form-field textarea {
+  height: auto;
+  min-height: 70px;
 }
 
+/* Wide fields (Notiz + Skonto Info) */
 .form-field-wide {
   grid-column: span 2;
 }
 
-.skonto-info {
-  background: var(--panel-peach);
-  color: var(--text-light);
-  font-size: 0.85rem;
-  padding: 10px;
-  border-radius: 10px;
-}
-
+/* Buttons unten */
 .form-actions {
-  margin-top: 12px;
+  margin-top: 18px;
   display: flex;
-  gap: 10px;
+  gap: 14px;
+  justify-content: flex-start;
 }
 
 /* Buttons */
