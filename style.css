@@ -420,3 +420,16 @@ label .req {
   color: var(--red);
   font-weight: 700;
 }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+}
+
