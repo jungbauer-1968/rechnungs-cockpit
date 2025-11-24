@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const STORAGE_KEY = "rechnungsCockpit_v2";
-  const THEME_KEY = "rechnungsCockpit_theme";
+  const STORAGE_KEY = "rechnungsCockpit_v3";
+  const THEME_KEY = "cockpit_theme";
 
-  // Form elements
+  // Elements
   const form = document.getElementById("invoiceForm");
   const numberInput = document.getElementById("invoiceNumber");
   const supplierInput = document.getElementById("supplier");
@@ -14,9 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const skontoInfo = document.getElementById("skontoInfo");
   const clearFormBtn = document.getElementById("clearFormBtn");
   const saveBtn = document.getElementById("saveBtn");
-  const supplierDatalist = document.getElementById("supplierDatalist");
 
-  // Table / filter elements
+  // List/Table
   const tableBody = document.getElementById("invoiceTableBody");
   const emptyState = document.getElementById("emptyState");
   const searchInput = document.getElementById("searchInput");
@@ -24,16 +23,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const monthFilter = document.getElementById("monthFilter");
   const yearFilter = document.getElementById("yearFilter");
 
-  // Supplier dashboard / sums
+  // Dashboard
   const supplierCardsContainer = document.getElementById("supplierCards");
   const sumOpenEl = document.getElementById("sumOpen");
   const sumOverdueEl = document.getElementById("sumOverdue");
   const sumSkontoEl = document.getElementById("sumSkonto");
 
+  const supplierDatalist = document.getElementById("supplierDatalist");
+
   // Theme
   const themeToggle = document.getElementById("themeToggle");
 
-  // State
+  // App state
   let invoices = loadInvoices();
   let currentFilter = "open";
   let currentSearch = "";
@@ -41,16 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentYear = "all";
   let currentSupplierFilter = "all";
   let sortKey = "dueDate";
-  let sortDir = 1; // 1=asc, -1=desc
+  let sortDir = 1;
   let editId = null;
 
-  // Init
+  // INIT ---------------------------------------------------------
+
   initTheme();
   initDateDefaults();
   attachEvents();
   renderAll();
-
-  // === INIT FUNCTIONS ===
 
   function initTheme() {
     const saved = localStorage.getItem(THEME_KEY);
@@ -67,8 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
     dueDateInput.value = today;
   }
 
+  // EVENT HANDLERS ---------------------------------------------------
+
   function attachEvents() {
-    // Theme toggle
     themeToggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
       const isDark = document.body.classList.contains("dark");
@@ -76,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
     });
 
-    // Skonto info live
     amountInput.addEventListener("input", updateSkontoInfo);
     skontoPercentInput.addEventListener("change", updateSkontoInfo);
 
@@ -89,16 +89,16 @@ document.addEventListener("DOMContentLoaded", () => {
       updateSkontoInfo();
     });
 
-    form.addEventListener("submit", handleSaveInvoice);
+    form.addEventListener("submit", handleSave);
 
-    filterButtons.forEach((btn) => {
+    filterButtons.forEach((btn) =>
       btn.addEventListener("click", () => {
         filterButtons.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.dataset.filter;
         renderAll();
-      });
-    });
+      })
+    );
 
     searchInput.addEventListener("input", () => {
       currentSearch = searchInput.value.trim().toLowerCase();
@@ -115,73 +115,51 @@ document.addEventListener("DOMContentLoaded", () => {
       renderAll();
     });
 
-    // Table actions
     tableBody.addEventListener("click", (event) => {
-      const target = event.target;
-      const id = target.dataset.id;
+      const t = event.target;
+      const id = t.dataset.id;
+
       if (!id) return;
 
-      if (target.classList.contains("edit-btn")) {
-        startEdit(id);
-      } else if (target.classList.contains("delete-btn")) {
-        deleteInvoice(id);
-      }
+      if (t.classList.contains("edit-btn")) startEdit(id);
+      if (t.classList.contains("delete-btn")) deleteInvoice(id);
     });
 
     tableBody.addEventListener("change", (event) => {
-      const target = event.target;
-      if (target.classList.contains("paid-checkbox")) {
-        const id = target.dataset.id;
-        togglePaid(id, target.checked);
+      const t = event.target;
+      if (t.classList.contains("paid-checkbox")) {
+        togglePaid(t.dataset.id, t.checked);
       }
     });
 
-    // Sorting
-    const headers = document.querySelectorAll(".invoice-table th[data-sort]");
-    headers.forEach((th) => {
-      th.addEventListener("click", () => {
-        const key = th.dataset.sort;
-        if (sortKey === key) {
-          sortDir = -sortDir;
-        } else {
-          sortKey = key;
-          sortDir = 1;
-        }
-        headers.forEach((h) => {
-          h.classList.remove("sort-asc", "sort-desc");
-        });
-        th.classList.add(sortDir === 1 ? "sort-asc" : "sort-desc");
-        renderTable();
-      });
-    });
+    document
+      .querySelectorAll(".invoice-table th[data-sort]")
+      .forEach((th) =>
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          if (sortKey === key) sortDir = -sortDir;
+          else {
+            sortKey = key;
+            sortDir = 1;
+          }
+          document
+            .querySelectorAll(".invoice-table th[data-sort]")
+            .forEach((h) => h.classList.remove("sort-asc", "sort-desc"));
+          th.classList.add(sortDir === 1 ? "sort-asc" : "sort-desc");
+          renderTable();
+        })
+      );
   }
 
-  // === STORAGE ===
+  // SAVE INVOICE ---------------------------------------------------------
 
-  function loadInvoices() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const data = JSON.parse(raw);
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn("Konnte Daten nicht laden:", e);
-      return [];
-    }
-  }
-
-  function saveInvoices() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
-  }
-
-  // === FORM & CRUD ===
-
-  function handleSaveInvoice(e) {
+  function handleSave(e) {
     e.preventDefault();
 
+    let supplier = supplierInput.value.trim().toUpperCase(); // AUTOKORREKTUR
+
     const number = numberInput.value.trim();
-    const supplier = supplierInput.value.trim();
-    const amount = parseFloat(String(amountInput.value).replace(",", "."));
+    const amount = parseFloat(amountInput.value);
     const dueDate = dueDateInput.value;
     const skontoPercent = skontoPercentInput.value
       ? parseFloat(skontoPercentInput.value)
@@ -190,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const note = noteInput.value.trim();
 
     if (!number || !supplier || !dueDate || isNaN(amount)) {
-      alert("Bitte Rechnungsnummer, Lieferant, Betrag und Fälligkeitsdatum ausfüllen.");
+      alert("Bitte alle Pflichtfelder ausfüllen.");
       return;
     }
 
@@ -205,24 +183,18 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (editId) {
-      const idx = invoices.findIndex((inv) => inv.id === editId);
-      if (idx !== -1) {
-        invoices[idx] = {
-          ...invoices[idx],
-          ...base,
-        };
-      }
+      const idx = invoices.findIndex((i) => i.id === editId);
+      invoices[idx] = { ...invoices[idx], ...base };
       editId = null;
       saveBtn.textContent = "Rechnung speichern";
       clearFormBtn.textContent = "Felder leeren";
     } else {
-      const invoice = {
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      invoices.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
         ...base,
         paid: false,
         createdAt: new Date().toISOString(),
-      };
-      invoices.push(invoice);
+      });
     }
 
     saveInvoices();
@@ -232,11 +204,29 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   }
 
+  // LOAD & SAVE -------------------------------------------------------------
+
+  function loadInvoices() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveInvoices() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
+  }
+
+  // EDIT / DELETE / PAY -----------------------------------------------------
+
   function startEdit(id) {
     const inv = invoices.find((i) => i.id === id);
     if (!inv) return;
 
     editId = id;
+
     numberInput.value = inv.number;
     supplierInput.value = inv.supplier;
     amountInput.value = inv.amount;
@@ -244,8 +234,6 @@ document.addEventListener("DOMContentLoaded", () => {
     skontoPercentInput.value = inv.skontoPercent ?? "";
     skontoDateInput.value = inv.skontoDate || "";
     noteInput.value = inv.note || "";
-
-    updateSkontoInfo();
 
     saveBtn.textContent = "Rechnung aktualisieren";
     clearFormBtn.textContent = "Bearbeitung abbrechen";
@@ -255,26 +243,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function deleteInvoice(id) {
     if (!confirm("Rechnung wirklich löschen?")) return;
-    invoices = invoices.filter((inv) => inv.id !== id);
+    invoices = invoices.filter((i) => i.id !== id);
     saveInvoices();
     renderAll();
   }
 
   function togglePaid(id, paid) {
-    const idx = invoices.findIndex((inv) => inv.id === id);
+    const idx = invoices.findIndex((i) => i.id === id);
     if (idx === -1) return;
     invoices[idx].paid = paid;
     saveInvoices();
     renderAll();
   }
 
-  // === SKONTO ===
+  // SKONTO -------------------------------------------------------------
 
   function updateSkontoInfo() {
-    const amount = parseFloat(String(amountInput.value).replace(",", "."));
-    const percent = skontoPercentInput.value
-      ? parseFloat(skontoPercentInput.value)
-      : null;
+    const amount = parseFloat(amountInput.value);
+    const percent = parseFloat(skontoPercentInput.value || "0");
 
     if (!percent || isNaN(amount)) {
       skontoInfo.textContent = "Kein Skonto ausgewählt.";
@@ -284,8 +270,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const skontoAmount = amount * (percent / 100);
     const net = amount - skontoAmount;
 
-    skontoInfo.textContent =
-      `${percent}% Skonto: ${formatCurrency(skontoAmount)} → Zahlbetrag mit Skonto: ${formatCurrency(net)}.`;
+    skontoInfo.textContent = `${percent}% Skonto: € ${skontoAmount.toFixed(
+      2
+    )} → Zahlbetrag: € ${net.toFixed(2)}`;
   }
 
   function calcSkontoAmount(inv) {
@@ -293,71 +280,55 @@ document.addEventListener("DOMContentLoaded", () => {
     return inv.amount * (inv.skontoPercent / 100);
   }
 
-  // === STATUS, FILTER, SORT ===
+  // STATUS -------------------------------------------------------------
 
   function getStatus(inv) {
-    const today = toDateOnly(new Date());
-    const due = inv.dueDate ? toDateOnly(new Date(inv.dueDate)) : null;
-    const skonto = inv.skontoDate ? toDateOnly(new Date(inv.skontoDate)) : null;
+    const today = toDate(new Date());
+    const due = inv.dueDate ? toDate(new Date(inv.dueDate)) : null;
+    const sk = inv.skontoDate ? toDate(new Date(inv.skontoDate)) : null;
 
-    if (inv.paid) {
-      return { type: "paid", label: "Bezahlt", short: "Bezahlt" };
-    }
+    if (inv.paid) return { type: "paid", label: "Bezahlt" };
+    if (due && due < today) return { type: "overdue", label: "Überfällig" };
+    if (due && +due === +today) return { type: "dueToday", label: "Heute fällig" };
+    if (sk && today <= sk) return { type: "skonto", label: "Skonto-Phase" };
 
-    if (due && due < today) {
-      return { type: "overdue", label: "Überfällig", short: "Überf." };
-    }
-
-    if (skonto && today <= skonto) {
-      return {
-        type: "skonto",
-        label: "Skonto-Phase (Skonto noch möglich)",
-        short: "Skonto",
-      };
-    }
-
-    return { type: "open", label: "Offen", short: "Offen" };
+    return { type: "open", label: "Offen" };
   }
+  // FILTER + SORT ---------------------------------------------------------
 
   function getFilteredInvoices() {
     return invoices.filter((inv) => {
       const status = getStatus(inv);
 
-      // Status-Filter
-      if (currentFilter !== "all" && status.type !== currentFilter) {
-        return false;
-      }
+      // status filter
+      if (currentFilter !== "all" && currentFilter !== status.type) return false;
 
-      // Lieferanten-Filter (Karte)
-      if (currentSupplierFilter !== "all" && inv.supplier !== currentSupplierFilter) {
+      // supplier filter
+      if (
+        currentSupplierFilter !== "all" &&
+        inv.supplier !== currentSupplierFilter
+      )
         return false;
-      }
 
-      // Monats-/Jahresfilter (nach Fälligkeitsdatum)
+      // month/year filter
       if (currentMonth !== "all" || currentYear !== "all") {
-        const d = inv.dueDate ? new Date(inv.dueDate) : null;
-        if (!d || isNaN(d)) return false;
-
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear();
-
-        if (currentMonth !== "all" && Number(currentMonth) !== month) return false;
-        if (currentYear !== "all" && Number(currentYear) !== year) return false;
+        const d = new Date(inv.dueDate);
+        if (currentMonth !== "all" && d.getMonth() + 1 !== Number(currentMonth))
+          return false;
+        if (currentYear !== "all" && d.getFullYear() !== Number(currentYear))
+          return false;
       }
 
-      // Suche
+      // search filter (fixed)
       if (currentSearch) {
-        const haystack = (
-          (inv.number || "") +
+        const haystack =
+          (inv.number || "").toLowerCase() +
           " " +
-          (inv.supplier || "") +
+          (inv.supplier || "").toLowerCase() +
           " " +
-          (inv.note || "")
-        ).toLowerCase();
+          (inv.note || "").toLowerCase();
 
-        if (!haystack.includes(currentSearch)) {
-          return false;
-        }
+        if (!haystack.includes(currentSearch)) return false;
       }
 
       return true;
@@ -366,63 +337,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function sortInvoices(list) {
     return [...list].sort((a, b) => {
+      const dir = sortDir;
       let va, vb;
 
       switch (sortKey) {
         case "number":
-          va = (a.number || "").toLowerCase();
-          vb = (b.number || "").toLowerCase();
+          va = a.number.toLowerCase();
+          vb = b.number.toLowerCase();
           break;
+
         case "supplier":
-          va = (a.supplier || "").toLowerCase();
-          vb = (b.supplier || "").toLowerCase();
+          va = a.supplier.toLowerCase();
+          vb = b.supplier.toLowerCase();
           break;
+
         case "amount":
-          va = a.amount || 0;
-          vb = b.amount || 0;
+          va = a.amount;
+          vb = b.amount;
           break;
+
         case "skontoPercent":
           va = a.skontoPercent || 0;
           vb = b.skontoPercent || 0;
           break;
+
         case "skontoAmount":
           va = calcSkontoAmount(a);
           vb = calcSkontoAmount(b);
           break;
-        case "skontoDate":
-          va = a.skontoDate ? new Date(a.skontoDate).getTime() : 0;
-          vb = b.skontoDate ? new Date(b.skontoDate).getTime() : 0;
-          break;
-        case "status":
-          va = getStatus(a).type;
-          vb = getStatus(b).type;
-          break;
-        case "dueDate":
-        default:
-          va = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-          vb = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-          break;
+
+        default: // dueDate
+          va = new Date(a.dueDate).getTime();
+          vb = new Date(b.dueDate).getTime();
       }
 
-      if (va < vb) return -1 * sortDir;
-      if (va > vb) return 1 * sortDir;
-      return 0;
+      return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
     });
   }
 
-  // === RENDER ===
+  // RENDER EVERYTHING ------------------------------------------------------
 
   function renderAll() {
     renderFiltersMonthYear();
     renderTable();
     renderSupplierDashboard();
     renderSummaries();
+    renderSupplierDatalist();
   }
 
-  function renderTable() {
-    const filtered = sortInvoices(getFilteredInvoices());
+  // TABLE ------------------------------------------------------------------
 
-    if (filtered.length === 0) {
+  function renderTable() {
+    const data = sortInvoices(getFilteredInvoices());
+
+    if (data.length === 0) {
       tableBody.innerHTML = "";
       emptyState.style.display = "block";
       return;
@@ -430,63 +398,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
     emptyState.style.display = "none";
 
-    const rows = filtered
+    tableBody.innerHTML = data
       .map((inv) => {
         const status = getStatus(inv);
-        const rowClass = `row-${status.type}`;
-        const skontoAmount = calcSkontoAmount(inv);
-        const skontoAmountText = skontoAmount
-          ? formatCurrency(skontoAmount)
-          : "–";
+        const skAmount = calcSkontoAmount(inv);
+
+        // Warning emoji logic
+        let warnIcon = "";
+        if (status.type === "overdue") warnIcon = `<span class="warn-icon">🔴</span>`;
+        else if (status.type === "dueToday") warnIcon = `<span class="warn-icon">🟠</span>`;
+        else if (inv.skontoDate && !inv.paid) {
+          const today = toDate(new Date());
+          const sk = toDate(new Date(inv.skontoDate));
+          if (today > sk) warnIcon = `<span class="warn-icon">⏳</span>`;
+          else warnIcon = `<span class="warn-icon">💸</span>`;
+        }
 
         return `
-        <tr class="${rowClass}">
-          <td>
-            <span class="status-pill status-${status.type}">
-              <span class="dot dot-${status.type}"></span>${status.short}
-            </span>
-          </td>
-          <td><strong>${escapeHtml(inv.number)}</strong></td>
-          <td>${escapeHtml(inv.supplier)}</td>
-          <td class="numeric">${formatCurrency(inv.amount)}</td>
-          <td class="numeric">${inv.skontoPercent ? inv.skontoPercent + " %" : "–"}</td>
-          <td class="numeric">${skontoAmountText}</td>
-          <td>${inv.skontoDate ? formatDate(inv.skontoDate) : "–"}</td>
-          <td>${inv.dueDate ? formatDate(inv.dueDate) : "–"}</td>
-          <td>${status.label}</td>
-          <td class="checkbox-center">
-            <input type="checkbox" class="paid-checkbox" data-id="${inv.id}" ${
+      <tr class="row-${status.type}">
+        <td><span class="status-pill status-${status.type}">${status.label}</span></td>
+        <td><strong>${inv.number}</strong></td>
+        <td>${inv.supplier}</td>
+        <td class="numeric">${inv.amount.toFixed(2)} €</td>
+        <td class="numeric">${inv.skontoPercent || "-"}</td>
+        <td class="numeric">${skAmount ? skAmount.toFixed(2) + " €" : "-"}</td>
+        <td>${inv.skontoDate ? formatDate(inv.skontoDate) : "-"}</td>
+        <td>${formatDate(inv.dueDate)}</td>
+        <td>${warnIcon}</td>
+
+        <td class="checkbox-center">
+          <input type="checkbox" class="paid-checkbox" data-id="${inv.id}" ${
           inv.paid ? "checked" : ""
-        } />
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button class="action-btn edit edit-btn" data-id="${inv.id}">Bearbeiten</button>
-              <button class="action-btn delete delete-btn" data-id="${inv.id}">✖</button>
-            </div>
-          </td>
-        </tr>`;
+        }>
+        </td>
+
+        <td>
+          <button class="action-btn edit-btn edit-btn" data-id="${inv.id}">
+            🍬 Bearbeiten
+          </button>
+          <button class="action-btn delete-btn" data-id="${inv.id}">
+            🧨 Löschen
+          </button>
+        </td>
+      </tr>`;
       })
       .join("");
-
-    tableBody.innerHTML = rows;
   }
 
+  // MONTH/YEAR FILTER --------------------------------------------------------
+
   function renderFiltersMonthYear() {
-    // Jahre sammeln
-    const yearsSet = new Set();
-    invoices.forEach((inv) => {
-      if (!inv.dueDate) return;
-      const y = new Date(inv.dueDate).getFullYear();
-      if (!isNaN(y)) yearsSet.add(y);
-    });
-    const years = Array.from(yearsSet).sort((a, b) => a - b);
+    const years = [
+      ...new Set(invoices.map((i) => new Date(i.dueDate).getFullYear())),
+    ].sort();
 
-    yearFilter.innerHTML = `<option value="all">Alle Jahre</option>` +
-      years.map((y) => `<option value="${y}" ${currentYear == y ? "selected" : ""}>${y}</option>`).join("");
+    yearFilter.innerHTML =
+      `<option value="all">Alle Jahre</option>` +
+      years.map((y) => `<option value="${y}">${y}</option>`).join("");
 
-    // Monate statisch
-    const monthsNames = [
+    const months = [
       "Jänner",
       "Februar",
       "März",
@@ -501,142 +471,108 @@ document.addEventListener("DOMContentLoaded", () => {
       "Dezember",
     ];
 
-    monthFilter.innerHTML = `<option value="all">Alle Monate</option>` +
-      monthsNames
-        .map(
-          (m, idx) =>
-            `<option value="${idx + 1}" ${
-              Number(currentMonth) === idx + 1 ? "selected" : ""
-            }>${m}</option>`
-        )
-        .join("");
+    monthFilter.innerHTML =
+      `<option value="all">Alle Monate</option>` +
+      months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
   }
 
+  // SUPPLIER DASHBOARD -------------------------------------------------------
+
   function renderSupplierDashboard() {
-    const statsBySupplier = {};
+    const stats = {};
 
     invoices.forEach((inv) => {
-      const supplier = inv.supplier || "Unbekannt";
-      if (!statsBySupplier[supplier]) {
-        statsBySupplier[supplier] = {
-          supplier,
+      const s = inv.supplier;
+      if (!stats[s]) {
+        stats[s] = {
+          supplier: s,
           count: 0,
           sumOpen: 0,
           sumOverdue: 0,
           sumSkonto: 0,
         };
       }
-      const s = statsBySupplier[supplier];
-      s.count += 1;
 
-      const status = getStatus(inv);
+      stats[s].count++;
+
+      const st = getStatus(inv);
       if (!inv.paid) {
-        s.sumOpen += inv.amount;
-        if (status.type === "overdue") s.sumOverdue += inv.amount;
-        if (status.type === "skonto") s.sumSkonto += inv.amount;
+        stats[s].sumOpen += inv.amount;
+        if (st.type === "overdue") stats[s].sumOverdue += inv.amount;
+        if (st.type === "skonto") stats[s].sumSkonto += inv.amount;
       }
     });
 
-    const suppliers = Object.values(statsBySupplier).sort((a, b) =>
-      a.supplier.localeCompare(b.supplier)
-    );
-
-    if (suppliers.length === 0) {
-      supplierCardsContainer.innerHTML =
-        `<p style="font-size:0.8rem;color:var(--muted);">Noch keine Lieferanten vorhanden.</p>`;
-    } else {
-      supplierCardsContainer.innerHTML = suppliers
-        .map((s) => {
-          const active = currentSupplierFilter === s.supplier ? "active" : "";
-          return `
-        <div class="supplier-card ${active}" data-supplier="${escapeHtml(
-            s.supplier
-          )}">
+    supplierCardsContainer.innerHTML = Object.values(stats)
+      .map((s) => {
+        const active = currentSupplierFilter === s.supplier ? "active" : "";
+        return `
+        <div class="supplier-card ${active}" data-supplier="${s.supplier}">
           <div class="supplier-card-header">
-            <span class="supplier-name">${escapeHtml(s.supplier)}</span>
+            <span class="supplier-name">${s.supplier}</span>
             <span class="supplier-count">${s.count} Rechn.</span>
           </div>
+
           <div class="supplier-sums">
-            <span>Offen: ${formatCurrency(s.sumOpen)}</span>
+            <span>Offen: ${s.sumOpen.toFixed(2)} €</span>
           </div>
+
           <div class="supplier-sums">
-            <span>Überfällig: ${formatCurrency(s.sumOverdue)}</span>
-            <span>Skonto: ${formatCurrency(s.sumSkonto)}</span>
+            <span>Überfällig: ${s.sumOverdue.toFixed(2)} €</span>
+            <span>Skonto: ${s.sumSkonto.toFixed(2)} €</span>
           </div>
         </div>`;
-        })
-        .join("");
-    }
+      })
+      .join("");
 
-    // Click handling
-    supplierCardsContainer.querySelectorAll(".supplier-card").forEach((card) => {
+    document.querySelectorAll(".supplier-card").forEach((card) => {
       card.addEventListener("click", () => {
-        const supplier = card.dataset.supplier;
-        if (currentSupplierFilter === supplier) {
-          currentSupplierFilter = "all";
-        } else {
-          currentSupplierFilter = supplier;
-        }
+        const s = card.dataset.supplier;
+        currentSupplierFilter = currentSupplierFilter === s ? "all" : s;
         renderAll();
       });
     });
-
-    // datalist für Lieferanten (für schnelles Ausfüllen)
-    const dlOptions = suppliers
-      .map((s) => `<option value="${escapeHtml(s.supplier)}"></option>`)
-      .join("");
-    supplierDatalist.innerHTML = dlOptions;
   }
+
+  // SUPPLIER AUTOCOMPLETE ---------------------------------------------------
+
+  function renderSupplierDatalist() {
+    const suppliers = [...new Set(invoices.map((i) => i.supplier))].sort();
+    supplierDatalist.innerHTML = suppliers
+      .map((s) => `<option value="${s}"></option>`)
+      .join("");
+  }
+
+  // SUMMARIES ---------------------------------------------------------------
 
   function renderSummaries() {
-    let sumOpen = 0;
-    let sumOverdue = 0;
-    let sumSkonto = 0;
+    let open = 0;
+    let overdue = 0;
+    let skonto = 0;
 
     invoices.forEach((inv) => {
-      if (inv.paid) return;
-      const status = getStatus(inv);
-      sumOpen += inv.amount || 0;
-      if (status.type === "overdue") sumOverdue += inv.amount || 0;
-      if (status.type === "skonto") sumSkonto += inv.amount || 0;
+      const st = getStatus(inv);
+      if (!inv.paid) {
+        open += inv.amount;
+        if (st.type === "overdue") overdue += inv.amount;
+        if (st.type === "skonto") skonto += inv.amount;
+      }
     });
 
-    sumOpenEl.textContent = formatCurrency(sumOpen);
-    sumOverdueEl.textContent = formatCurrency(sumOverdue);
-    sumSkontoEl.textContent = formatCurrency(sumSkonto);
+    sumOpenEl.textContent = open.toFixed(2) + " €";
+    sumOverdueEl.textContent = overdue.toFixed(2) + " €";
+    sumSkontoEl.textContent = skonto.toFixed(2) + " €";
   }
 
-  // === HELPERS ===
+  // HELPERS -----------------------------------------------------------------
 
-  function formatCurrency(amount) {
-    if (isNaN(amount)) return "€ 0,00";
-    try {
-      return new Intl.NumberFormat("de-AT", {
-        style: "currency",
-        currency: "EUR",
-      }).format(amount);
-    } catch {
-      return "€ " + amount.toFixed(2).replace(".", ",");
-    }
+  function toDate(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   }
 
-  function formatDate(value) {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d)) return value;
+  function formatDate(v) {
+    const d = new Date(v);
     return d.toLocaleDateString("de-AT");
   }
-
-  function toDateOnly(date) {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
 });
+
