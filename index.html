@@ -9,20 +9,27 @@
 <body>
   <div class="app">
     <header class="app-header">
-      <div>
+      <div class="title-block">
         <h1>Rechnungs-Cockpit</h1>
-        <p>Offene Eingangsrechnungen mit Skonto & Fälligkeiten im Blick</p>
+        <p>Offene Eingangsrechnungen mit Skonto, Fälligkeiten & Spaß-Faktor im Blick ✨</p>
       </div>
-      <div class="header-badge">
-        <span class="dot dot-open"></span> offen
-        <span class="dot dot-skonto"></span> Skonto-Phase
-        <span class="dot dot-overdue"></span> überfällig
-        <span class="dot dot-paid"></span> bezahlt
+
+      <div class="header-right">
+        <div class="status-legend">
+          <span><span class="dot dot-open"></span>offen</span>
+          <span><span class="dot dot-skonto"></span>Skonto-Phase</span>
+          <span><span class="dot dot-overdue"></span>überfällig</span>
+          <span><span class="dot dot-paid"></span>bezahlt</span>
+        </div>
+
+        <button id="themeToggle" class="theme-toggle" title="Hell/Dunkel umschalten">
+          🌞
+        </button>
       </div>
     </header>
 
     <main class="layout">
-      <!-- Eingabe -->
+      <!-- Formular -->
       <section class="panel panel-form">
         <h2>Neue Rechnung erfassen</h2>
         <form id="invoiceForm">
@@ -49,40 +56,64 @@
             </div>
 
             <div class="form-field">
-              <label for="skontoDate">Skonto-Frist (optional)</label>
-              <input id="skontoDate" type="date" />
+              <label for="skontoPercent">Skonto (%)</label>
+              <select id="skontoPercent">
+                <option value="">– kein Skonto –</option>
+                <option value="2">2 %</option>
+                <option value="3">3 %</option>
+                <option value="5">5 %</option>
+              </select>
             </div>
 
             <div class="form-field">
+              <label for="skontoDate">Skonto-Frist (Datum)</label>
+              <input id="skontoDate" type="date" />
+            </div>
+
+            <div class="form-field form-field-wide">
               <label for="note">Notiz (optional)</label>
               <textarea id="note" rows="2" placeholder="z.B. 2% Skonto bei Zahlung bis ..."></textarea>
+            </div>
+
+            <div class="form-field form-field-wide skonto-info" id="skontoInfo">
+              Kein Skonto ausgewählt.
             </div>
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn primary">Rechnung speichern</button>
+            <button type="submit" class="btn primary" id="saveBtn">Rechnung speichern</button>
             <button type="button" id="clearFormBtn" class="btn ghost">Felder leeren</button>
           </div>
         </form>
       </section>
 
-      <!-- Liste -->
+      <!-- Übersicht -->
       <section class="panel panel-list">
         <div class="list-header">
           <h2>Übersicht offene Rechnungen</h2>
           <div class="toolbar">
             <div class="filters">
               <button class="btn chip active" data-filter="open">Offen</button>
-              <button class="btn chip" data-filter="overdue">Überfällig</button>
               <button class="btn chip" data-filter="skonto">Skonto-Phase</button>
+              <button class="btn chip" data-filter="overdue">Überfällig</button>
               <button class="btn chip" data-filter="paid">Bezahlt</button>
               <button class="btn chip" data-filter="all">Alle</button>
             </div>
+
+            <div class="extra-filters">
+              <select id="monthFilter">
+                <option value="all">Alle Monate</option>
+              </select>
+              <select id="yearFilter">
+                <option value="all">Alle Jahre</option>
+              </select>
+            </div>
+
             <div class="search">
               <input
                 id="searchInput"
                 type="text"
-                placeholder="Suche nach Nummer / Lieferant..."
+                placeholder="Suche nach Nummer, Lieferant oder Notiz..."
               />
             </div>
           </div>
@@ -92,15 +123,17 @@
           <table class="invoice-table">
             <thead>
               <tr>
-                <th>Status</th>
-                <th>Rechnungsnr.</th>
-                <th>Lieferant</th>
-                <th>Betrag</th>
-                <th>Skonto bis</th>
-                <th>Fällig am</th>
+                <th data-sort="status">Status</th>
+                <th data-sort="number">Rechnungsnr.</th>
+                <th data-sort="supplier">Lieferant</th>
+                <th data-sort="amount" class="numeric">Betrag</th>
+                <th data-sort="skontoPercent" class="numeric">Skonto %</th>
+                <th data-sort="skontoAmount" class="numeric">Skonto (€)</th>
+                <th data-sort="skontoDate">Skonto bis</th>
+                <th data-sort="dueDate">Fällig am</th>
                 <th>Status-Text</th>
                 <th>Bezahlt</th>
-                <th></th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="invoiceTableBody">
@@ -108,31 +141,30 @@
             </tbody>
           </table>
           <div id="emptyState" class="empty-state">
-            Noch keine Rechnungen angelegt – einfach oben eine neue erfassen ✨
+            Noch keine Rechnungen angelegt – oben eine neue erfassen 🍭
           </div>
         </div>
       </section>
 
-      <!-- Lieferanten / Statistik -->
+      <!-- Lieferanten & Summen -->
       <aside class="panel panel-suppliers">
-        <h2>Hauptlieferanten</h2>
-        <ul id="supplierList" class="supplier-list">
-          <!-- wird per JS gefüllt -->
-        </ul>
+        <h2>Lieferanten-Dashboard</h2>
+        <p class="hint">Klick auf ein Kästchen, um nur diesen Lieferanten zu sehen.</p>
+
+        <div id="supplierCards" class="supplier-cards">
+          <!-- Cards kommen aus JS -->
+        </div>
 
         <div class="summary-box">
-          <h3>Summen</h3>
+          <h3>Gesamt-Summen</h3>
           <div class="summary-row">
-            <span>Offen gesamt:</span>
-            <span id="sumOpen">€ 0,00</span>
+            <span>Offen gesamt:</span><span id="sumOpen">€ 0,00</span>
           </div>
           <div class="summary-row">
-            <span>Überfällig:</span>
-            <span id="sumOverdue">€ 0,00</span>
+            <span>Überfällig:</span><span id="sumOverdue">€ 0,00</span>
           </div>
           <div class="summary-row">
-            <span>In Skonto-Phase:</span>
-            <span id="sumSkonto">€ 0,00</span>
+            <span>In Skonto-Phase:</span><span id="sumSkonto">€ 0,00</span>
           </div>
         </div>
       </aside>
