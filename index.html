@@ -709,9 +709,10 @@ function renderTable(list, totalCount) {
           <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${inv.paid ? "checked" : ""}>
         </td>
         <td>
-          <button class="editBtn" data-id="${inv.id}">✏️</button>
-          <button class="deleteBtn" data-id="${inv.id}">❌</button>
-        </td>
+  <button class="editBtn" data-id="${inv.id}">✏️</button>
+  <button class="payBtn" data-id="${inv.id}">💶</button>
+  <button class="deleteBtn" data-id="${inv.id}">❌</button>
+</td>
       </tr>
     `;
   });
