@@ -720,6 +720,16 @@ function renderTable(list, totalCount) {
   tableBody.innerHTML = rows;
   attachRowEvents();
 }
+// ==============================================
+//   PAYMENTS: OPEN PAYMENT POPUP FROM ROW
+// ==============================================
+
+document.querySelectorAll(".payBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const id = Number(btn.dataset.id);
+        openPaymentPopup(id);
+    });
+});
 
 /* =====================================================
    ROW EVENTS (PAID / EDIT / DELETE)
