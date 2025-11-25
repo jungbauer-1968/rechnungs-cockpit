@@ -758,23 +758,7 @@ function attachRowEvents() {
         });
     });
 
-    // ⭐ NEU: TEILZAHLUNG
-    document.querySelectorAll(".partialBtn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const id = Number(btn.dataset.id);
-            openPaymentPopup(id);
-        });
-    });
-
 }
-
-document.querySelectorAll(".payBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const id = Number(btn.dataset.id);
-        openPaymentPopup(id);
-    });
-});
-
 /* =====================================================
    ROW EVENTS (PAID / EDIT / DELETE)
 ===================================================== */
