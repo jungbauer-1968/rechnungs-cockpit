@@ -725,7 +725,11 @@ function renderTable(list, totalCount) {
 /* =====================================================
    ROW EVENTS (PAID / EDIT / DELETE)
 ===================================================== */
+/* =====================================================
+   ROW EVENTS (PAID / EDIT / DELETE / TEILZAHLUNG)
+===================================================== */
 function attachRowEvents() {
+  // Paid checkbox
   document.querySelectorAll(".paidCheck").forEach(cb => {
     cb.addEventListener("change", () => {
       const id = Number(cb.dataset.id);
@@ -738,6 +742,7 @@ function attachRowEvents() {
     });
   });
 
+  // Delete button
   document.querySelectorAll(".deleteBtn").forEach(btn => {
     btn.addEventListener("click", () => {
       if (!confirm("Rechnung wirklich löschen?")) return;
@@ -749,6 +754,7 @@ function attachRowEvents() {
     });
   });
 
+  // Edit button
   document.querySelectorAll(".editBtn").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = Number(btn.dataset.id);
@@ -767,6 +773,14 @@ function attachRowEvents() {
 
       saveButton.textContent = "Rechnung aktualisieren";
       window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  // 💶 Teilzahlung / Pay button
+  document.querySelectorAll(".payBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      openPaymentPopup(id);
     });
   });
 }
