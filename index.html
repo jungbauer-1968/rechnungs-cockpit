@@ -720,9 +720,53 @@ function renderTable(list, totalCount) {
   tableBody.innerHTML = rows;
   attachRowEvents();
 }
+   
 // ==============================================
 //   PAYMENTS: OPEN PAYMENT POPUP FROM ROW
 // ==============================================
+function attachRowEvents() {
+
+    // Paid Toggle
+    document.querySelectorAll(".paidCheck").forEach(cb => {
+        cb.addEventListener("change", () => {
+            const id = Number(cb.dataset.id);
+            const list = loadInvoices();
+            const inv = list.find(a => a.id === id);
+            if (!inv) return;
+            inv.paid = cb.checked;
+            saveInvoices(list);
+            updateUI();
+        });
+    });
+
+    // DELETE
+    document.querySelectorAll(".deleteBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (!confirm("Rechnung wirklich löschen?")) return;
+            const id = Number(btn.dataset.id);
+            const list = loadInvoices().filter(a => a.id !== id);
+            saveInvoices(list);
+            updateUI();
+        });
+    });
+
+    // EDIT
+    document.querySelectorAll(".editBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const id = Number(btn.dataset.id);
+            openEditPopup(id);
+        });
+    });
+
+    // ⭐ NEU: TEILZAHLUNG
+    document.querySelectorAll(".partialBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const id = Number(btn.dataset.id);
+            openPaymentPopup(id);
+        });
+    });
+
+}
 
 document.querySelectorAll(".payBtn").forEach(btn => {
     btn.addEventListener("click", () => {
