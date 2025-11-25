@@ -766,6 +766,35 @@ function renderSuppliers(list) {
     });
   });
 }
+/* =====================================================
+   LIEFERANTENSUMMEN – NUR FÜR GEWÄHLTEN LIEFERANTEN
+===================================================== */
+function renderSupplierTotals(list) {
+  const box = document.querySelector(".summary-box");
+
+  if (!supplierFilter) {
+    // Normale Gesamtwerte anzeigen
+    renderSummary(list);
+    return;
+  }
+
+  const filtered = list.filter(inv => inv.supplier === supplierFilter);
+  const now = new Date();
+
+  let open = 0, overdue = 0, skonto = 0;
+
+  filtered.forEach(inv => {
+    if (!inv.paid) open += inv.amount;
+    if (!inv.paid && inv.dueDate && new Date(inv.dueDate) < now)
+      overdue += inv.amount;
+    if (!inv.paid && inv.skontoDate && new Date(inv.skontoDate) >= now)
+      skonto += inv.amount;
+  });
+
+  document.getElementById("sumOpen").textContent = open.toFixed(2) + " €";
+  document.getElementById("sumOverdue").textContent = overdue.toFixed(2) + " €";
+  document.getElementById("sumSkonto").textContent = skonto.toFixed(2) + " €";
+}
 
 function renderSupplierDatalist(list) {
   const suppliers = [...new Set(list.map(a => a.supplier))];
