@@ -870,6 +870,69 @@ window.addEventListener("load", () => {
     alert("⚠️ Achtung!\nEs gibt überfällige Rechnungen!");
   }
 });
+/* =====================================================
+   TEILZAHLUNGEN – LOGIK
+===================================================== */
+let currentPaymentInvoice = null;
+
+function openPaymentPopup(invoiceId) {
+  currentPaymentInvoice = invoiceId;
+  const list = loadInvoices();
+  const inv = list.find(x => x.id === invoiceId);
+
+  if (!inv.payments) inv.payments = [];
+
+  // Liste der bestehenden Teilzahlungen
+  let html = "";
+  if (inv.payments.length === 0) {
+    html = "<p>Noch keine Teilzahlungen.</p>";
+  } else {
+    html = inv.payments.map(p => `
+      <div style="padding:8px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;">
+        <strong>${p.date}</strong> – ${p.amount.toFixed(2)} €
+        <br><small>${p.note || ""}</small>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("paymentList").innerHTML = html;
+
+  document.getElementById("paymentPopup").style.display = "flex";
+}
+
+document.getElementById("closePaymentPopup").addEventListener("click", () => {
+  document.getElementById("paymentPopup").style.display = "none";
+});
+
+document.getElementById("addPaymentBtn").addEventListener("click", () => {
+  const date = document.getElementById("payDate").value;
+  const amount = parseFloat(document.getElementById("payAmount").value);
+  const note = document.getElementById("payNote").value;
+
+  if (!date || isNaN(amount) || amount <= 0) {
+    alert("Bitte Datum und Betrag eingeben.");
+    return;
+  }
+
+  const list = loadInvoices();
+  const inv = list.find(x => x.id === currentPaymentInvoice);
+
+  if (!inv.payments) inv.payments = [];
+
+  inv.payments.push({
+    date,
+    amount,
+    note
+  });
+
+  // Restbetrag prüfen
+  const paidSum = inv.payments.reduce((a,b) => a + b.amount, 0);
+  if (paidSum >= inv.amount) inv.paid = true;
+
+  saveInvoices(list);
+  updateUI();
+  openPaymentPopup(currentPaymentInvoice);
+});
 
 updateUI();
 
