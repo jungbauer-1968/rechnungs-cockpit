@@ -752,6 +752,23 @@ function renderSummary(list) {
    INIT
 ===================================================== */
 search.addEventListener("input", () => updateUI());
+/* =====================================================
+   POPUP BEIM LADEN WENN ÜBERFÄLLIGE RECHNUNGEN EXISTIEREN
+===================================================== */
+window.addEventListener("load", () => {
+  const list = loadInvoices();
+  const now = new Date();
+
+  const hasOverdue = list.some(inv =>
+    !inv.paid &&
+    inv.dueDate &&
+    new Date(inv.dueDate) < now
+  );
+
+  if (hasOverdue) {
+    alert("⚠️ Achtung!\nEs gibt überfällige Rechnungen!");
+  }
+});
 
 updateUI();
 
