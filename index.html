@@ -164,7 +164,7 @@ body {
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px; /* ← FIX: Abstand zwischen Feldern */
+  gap: 20px;
   margin-bottom: 15px;
 }
 
@@ -263,6 +263,22 @@ body {
 .supplier-card:hover {
   background: #fff;
 }
+.chip {
+  margin-right: 6px;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #ffffffaa;
+}
+.chip.active {
+  background: var(--primary);
+  color: #fff;
+}
+.supplier-card.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+}
 
 /* ---------------------------------------------------------
    EMPTY STATE
@@ -350,7 +366,7 @@ body {
     </div>
 
     <div class="form-actions">
-      <button class="btn primary" type="submit">Rechnung speichern</button>
+      <button class="btn primary" type="submit" id="saveButton">Rechnung speichern</button>
       <button class="btn ghost" type="button" id="clearForm">Felder leeren</button>
     </div>
   </form>
@@ -423,7 +439,7 @@ function saveInvoices(list) {
 }
 
 /* =====================================================
-   DOM ELEMENTS
+   DOM ELEMENTS & STATE
 ===================================================== */
 const form = document.getElementById("invoiceForm");
 const tableBody = document.getElementById("invoiceTableBody");
@@ -435,9 +451,17 @@ const sumOverdue = document.getElementById("sumOverdue");
 const sumSkonto = document.getElementById("sumSkonto");
 
 const themeToggle = document.getElementById("themeToggle");
+const clearFormBtn = document.getElementById("clearForm");
+const saveButton = document.getElementById("saveButton");
+const supplierList = document.getElementById("supplierList");
+const statusChips = document.querySelectorAll(".chip");
+
+let currentStatusFilter = "all";
+let supplierFilter = null;
+let editId = null;
 
 /* =====================================================
-   EVENT: THEME
+   THEME TOGGLE
 ===================================================== */
 themeToggle.addEventListener("click", () => {
   document.body.classList.toggle("dark");
@@ -446,29 +470,104 @@ themeToggle.addEventListener("click", () => {
 });
 
 /* =====================================================
-   EVENT: FORM SUBMIT
+   FORM SUBMIT (CREATE / UPDATE)
 ===================================================== */
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const inv = {
-    id: Date.now(),
-    number: document.getElementById("invoiceNumber").value,
-    supplier: document.getElementById("supplier").value.toUpperCase(),
+  const base = {
+    number: document.getElementById("invoiceNumber").value.trim(),
+    supplier: document.getElementById("supplier").value.trim().toUpperCase(),
     amount: parseFloat(document.getElementById("amount").value),
     dueDate: document.getElementById("dueDate").value,
     skontoPercent: document.getElementById("skontoPercent").value,
     skontoDate: document.getElementById("skontoDate").value,
-    note: document.getElementById("note").value,
-    paid: false
+    note: document.getElementById("note").value
   };
 
-  const list = loadInvoices();
-  list.push(inv);
-  saveInvoices(list);
+  if (!base.number || !base.supplier || !base.dueDate || isNaN(base.amount)) {
+    alert("Bitte Rechnungsnummer, Lieferant, Betrag und Fälligkeitsdatum ausfüllen.");
+    return;
+  }
 
+  const list = loadInvoices();
+
+  if (editId !== null) {
+    const idx = list.findIndex(i => i.id === editId);
+    if (idx !== -1) {
+      list[idx] = Object.assign({}, list[idx], base);
+    }
+  } else {
+    const inv = Object.assign({
+      id: Date.now(),
+      paid: false
+    }, base);
+    list.push(inv);
+  }
+
+  saveInvoices(list);
+  editId = null;
+  saveButton.textContent = "Rechnung speichern";
   form.reset();
   updateUI();
+});
+
+/* =====================================================
+   CLEAR FORM
+===================================================== */
+clearFormBtn.addEventListener("click", () => {
+  editId = null;
+  saveButton.textContent = "Rechnung speichern";
+  form.reset();
+});
+
+/* =====================================================
+   STATUS & FILTER HELFER
+===================================================== */
+function getStatus(inv) {
+  const today = new Date();
+  const due = inv.dueDate ? new Date(inv.dueDate) : null;
+  const sk = inv.skontoDate ? new Date(inv.skontoDate) : null;
+
+  if (inv.paid) return "paid";
+  if (due && due < today) return "overdue";
+  if (sk && sk >= today) return "skonto";
+  return "open";
+}
+
+function getFilteredList(list) {
+  let filtered = list.slice();
+
+  if (currentStatusFilter !== "all") {
+    filtered = filtered.filter(inv => getStatus(inv) === currentStatusFilter);
+  }
+
+  if (supplierFilter) {
+    filtered = filtered.filter(inv => inv.supplier === supplierFilter);
+  }
+
+  const q = search.value.trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter(inv =>
+      inv.number.toLowerCase().includes(q) ||
+      inv.supplier.toLowerCase().includes(q) ||
+      (inv.note || "").toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
+}
+
+/* =====================================================
+   STATUS CHIP EVENTS
+===================================================== */
+statusChips.forEach(chip => {
+  chip.addEventListener("click", () => {
+    statusChips.forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    currentStatusFilter = chip.dataset.status || "all";
+    updateUI();
+  });
 });
 
 /* =====================================================
@@ -477,45 +576,39 @@ form.addEventListener("submit", (e) => {
 function updateUI() {
   const list = loadInvoices();
 
+  renderSuppliers(list);
+  renderSupplierDatalist(list);
+  renderSummary(list);
+
   if (list.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="11" class="empty-state">Noch keine Rechnungen 💖</td></tr>`;
-    supplierCards.innerHTML = "";
-    sumOpen.textContent = "0 €";
-    sumOverdue.textContent = "0 €";
-    sumSkonto.textContent = "0 €";
+    tableBody.innerHTML = '<tr><td colspan="11" class="empty-state">Noch keine Rechnungen 💖</td></tr>';
     return;
   }
 
-  renderTable(list);
-  renderSuppliers(list);
-  renderSummary(list);
+  const filtered = getFilteredList(list);
+  renderTable(filtered, list.length);
 }
 
-function renderTable(list) {
-  const query = search.value.toLowerCase();
-
-  const filtered = list.filter(inv =>
-    inv.number.toLowerCase().includes(query) ||
-    inv.supplier.toLowerCase().includes(query) ||
-    inv.note.toLowerCase().includes(query)
-  );
+function renderTable(list, totalCount) {
+  if (list.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="11" class="empty-state">Keine Rechnungen für den aktuellen Filter 🧐</td></tr>';
+    return;
+  }
 
   let rows = "";
 
-  filtered.forEach(inv => {
-    const today = new Date();
-    const due = new Date(inv.dueDate);
-    const sk = inv.skontoDate ? new Date(inv.skontoDate) : null;
+  list.forEach(inv => {
+    const status = getStatus(inv);
 
     let rowClass = "row-open";
     let warn = "";
 
-    if (inv.paid) {
+    if (status === "paid") {
       rowClass = "row-paid";
-    } else if (due < today) {
+    } else if (status === "overdue") {
       rowClass = "row-overdue";
       warn = "❗";
-    } else if (sk && sk >= today) {
+    } else if (status === "skonto") {
       rowClass = "row-skonto";
     }
 
@@ -523,9 +616,15 @@ function renderTable(list) {
       ? (inv.amount * (inv.skontoPercent / 100)).toFixed(2)
       : "-";
 
+    const dot =
+      status === "paid" ? "✔" :
+      status === "overdue" ? "❗" :
+      status === "skonto" ? "💛" :
+      "🔵";
+
     rows += `
       <tr class="${rowClass}">
-        <td>${inv.paid ? "✔" : warn ? "❗" : "🔵"}</td>
+        <td>${dot}</td>
         <td>${inv.number}</td>
         <td>${inv.supplier}</td>
         <td class="numeric">${inv.amount.toFixed(2)}</td>
@@ -535,9 +634,10 @@ function renderTable(list) {
         <td>${inv.dueDate}</td>
         <td>${warn}</td>
         <td>
-          <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${inv.paid ? "checked":""}>
+          <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${inv.paid ? "checked" : ""}>
         </td>
         <td>
+          <button class="editBtn" data-id="${inv.id}">✏️</button>
           <button class="deleteBtn" data-id="${inv.id}">❌</button>
         </td>
       </tr>
@@ -545,20 +645,19 @@ function renderTable(list) {
   });
 
   tableBody.innerHTML = rows;
-
   attachRowEvents();
 }
 
 /* =====================================================
-   ROW EVENTS
+   ROW EVENTS (PAID / EDIT / DELETE)
 ===================================================== */
 function attachRowEvents() {
-
   document.querySelectorAll(".paidCheck").forEach(cb => {
     cb.addEventListener("change", () => {
       const id = Number(cb.dataset.id);
       const list = loadInvoices();
       const inv = list.find(a => a.id === id);
+      if (!inv) return;
       inv.paid = cb.checked;
       saveInvoices(list);
       updateUI();
@@ -567,6 +666,7 @@ function attachRowEvents() {
 
   document.querySelectorAll(".deleteBtn").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (!confirm("Rechnung wirklich löschen?")) return;
       const id = Number(btn.dataset.id);
       let list = loadInvoices();
       list = list.filter(a => a.id !== id);
@@ -574,44 +674,73 @@ function attachRowEvents() {
       updateUI();
     });
   });
+
+  document.querySelectorAll(".editBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      const list = loadInvoices();
+      const inv = list.find(a => a.id === id);
+      if (!inv) return;
+
+      editId = id;
+      document.getElementById("invoiceNumber").value = inv.number;
+      document.getElementById("supplier").value = inv.supplier;
+      document.getElementById("amount").value = inv.amount;
+      document.getElementById("dueDate").value = inv.dueDate;
+      document.getElementById("skontoPercent").value = inv.skontoPercent || "";
+      document.getElementById("skontoDate").value = inv.skontoDate || "";
+      document.getElementById("note").value = inv.note || "";
+
+      saveButton.textContent = "Rechnung aktualisieren";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
 }
 
 /* =====================================================
-   SUPPLIERS
+   SUPPLIERS PANEL
 ===================================================== */
 function renderSuppliers(list) {
   const suppliers = [...new Set(list.map(a => a.supplier))];
 
+  if (suppliers.length === 0) {
+    supplierCards.innerHTML = "";
+    return;
+  }
+
   supplierCards.innerHTML = suppliers.map(s => `
-    <div class="supplier-card" data-supplier="${s}">${s}</div>
+    <div class="supplier-card ${supplierFilter === s ? "active" : ""}" data-supplier="${s}">${s}</div>
   `).join("");
 
   document.querySelectorAll(".supplier-card").forEach(card => {
     card.addEventListener("click", () => {
-      const supplier = card.dataset.supplier;
-      renderTable(list.filter(a => a.supplier === supplier));
+      const s = card.dataset.supplier;
+      supplierFilter = supplierFilter === s ? null : s;
+      updateUI();
     });
   });
+}
+
+function renderSupplierDatalist(list) {
+  const suppliers = [...new Set(list.map(a => a.supplier))];
+  supplierList.innerHTML = suppliers.map(s => `<option value="${s}"></option>`).join("");
 }
 
 /* =====================================================
    SUMMARIES
 ===================================================== */
 function renderSummary(list) {
-
   let open = 0, overdue = 0, skonto = 0;
   const now = new Date();
 
   list.forEach(inv => {
-
     if (!inv.paid) open += inv.amount;
 
-    if (!inv.paid && new Date(inv.dueDate) < now)
+    if (!inv.paid && inv.dueDate && new Date(inv.dueDate) < now)
       overdue += inv.amount;
 
     if (!inv.paid && inv.skontoDate && new Date(inv.skontoDate) >= now)
       skonto += inv.amount;
-
   });
 
   sumOpen.textContent = open.toFixed(2) + " €";
@@ -622,8 +751,8 @@ function renderSummary(list) {
 /* =====================================================
    INIT
 ===================================================== */
-search.addEventListener("input", updateUI);
-document.getElementById("clearForm").addEventListener("click", () => form.reset());
+search.addEventListener("input", () => updateUI());
+
 updateUI();
 
 </script>
