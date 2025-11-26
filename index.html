@@ -20,6 +20,7 @@
       --red: #ef4444;
       --orange: #f97316;
       --green: #16a34a;
+      --credit-green: #4ade80;
     }
 
     * {
@@ -209,6 +210,7 @@
     .btn.small {
       padding: 4px 8px;
       border-radius: 10px;
+      font-size: 0.8rem;
     }
 
     /* LIST / TABLE */
@@ -271,11 +273,18 @@
       text-align: right;
     }
 
+    .rest-cell {
+      font-weight: 700;
+    }
+
     .row-open { background: #eaf5ff; }
     .row-skonto { background: #fff4c2; }
     .row-overdue { background: #ffd6d6; }
     .row-paid { background: #d9ffe3; }
     .row-ob { box-shadow: inset 0 0 0 2px rgba(249,115,22,0.4); }
+    .row-credit {
+      box-shadow: 0 0 0 2px rgba(74,222,128,0.7);
+    }
 
     .empty-state {
       text-align: center;
@@ -313,7 +322,7 @@
       font-size: 0.9rem;
     }
 
-    /* Darkmode Fix inkl. Payment-Popup */
+    /* Darkmode Fix inkl. Payment-/Credit-Popup */
     .dark body,
     .dark {
       color: #111 !important;
@@ -357,7 +366,8 @@
       color: #000 !important;
     }
 
-    .dark #paymentPopup > div {
+    .dark #paymentPopup > div,
+    .dark #creditPopup > div {
       background: #1e293b;
       color: white;
     }
@@ -398,11 +408,30 @@
     </div>
   </div>
 
+  <!-- POPUP: GUTSCHRIFTEN -->
+  <div id="creditPopup" style="position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:white; padding:25px; border-radius:15px; width:400px; max-height:80vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+      <h2>Gutschriften</h2>
+      <div id="creditList" style="margin-bottom:20px;"></div>
+
+      <h3>Neue Gutschrift hinzufügen</h3>
+      <label>Datum:</label>
+      <input type="date" id="creditDate" style="width:100%;margin-bottom:10px;">
+      <label>Betrag (€):</label>
+      <input type="number" id="creditAmount" style="width:100%;margin-bottom:10px;">
+      <label>Notiz:</label>
+      <input type="text" id="creditNote" style="width:100%;margin-bottom:10px;">
+
+      <button id="addCreditBtn" class="btn primary" style="width:100%;margin-bottom:10px;">Gutschrift speichern</button>
+      <button id="closeCreditPopup" class="btn ghost" style="width:100%;">Schließen</button>
+    </div>
+  </div>
+
   <!-- HEADER -->
   <header class="app-header">
     <div class="title-block">
       <h1>Rechnungs-Cockpit</h1>
-      <p>Alles im Blick – Skonto, Fälligkeiten, Teilzahlungen & Lieferanten 💖</p>
+      <p>Alles im Blick – Skonto, Fälligkeiten, Teilzahlungen, Gutschriften & Lieferanten 💖</p>
     </div>
 
     <div class="header-right">
@@ -474,7 +503,7 @@
 
     <!-- LISTE -->
     <section class="panel panel-list">
-      <h2>Offene Rechnungen</h2>
+      <h2>Rechnungen</h2>
 
       <div class="toolbar">
         <button class="btn chip" data-status="all">Alle</button>
@@ -494,6 +523,8 @@
               <th>Re-Nr.</th>
               <th>Lieferant</th>
               <th class="numeric">Betrag</th>
+              <th class="numeric">GS (€)</th>
+              <th class="numeric">Rest (€)</th>
               <th class="numeric">Sk %</th>
               <th class="numeric">Sk €</th>
               <th>Sk. bis</th>
@@ -504,7 +535,7 @@
             </tr>
           </thead>
           <tbody id="invoiceTableBody">
-            <tr><td colspan="11" class="empty-state">Noch keine Rechnungen 💖</td></tr>
+            <tr><td colspan="13" class="empty-state">Noch keine Rechnungen 💖</td></tr>
           </tbody>
         </table>
       </div>
@@ -534,10 +565,11 @@
 function loadInvoices() {
   const raw = localStorage.getItem("cockpitInvoices") || "[]";
   let list = JSON.parse(raw);
-  // Sicherheits-Defaults (für alte Einträge)
+  // Defaults für alte Einträge
   list.forEach(inv => {
     if (inv.inOB === undefined) inv.inOB = false;
     if (!inv.payments) inv.payments = [];
+    if (!inv.credits) inv.credits = [];
   });
   return list;
 }
@@ -567,6 +599,9 @@ let currentStatusFilter = "all";
 let supplierFilter = null;
 let editId = null;
 
+let currentPaymentInvoice = null;
+let currentCreditInvoice = null;
+
 /* =====================================================
    THEME TOGGLE
 ===================================================== */
@@ -575,6 +610,17 @@ themeToggle.addEventListener("click", () => {
   themeToggle.textContent =
     document.body.classList.contains("dark") ? "🌙" : "🌞";
 });
+
+/* =====================================================
+   HELFER: TOTALS
+===================================================== */
+function computeTotals(inv) {
+  const amount = inv.amount || 0;
+  const creditTotal = (inv.credits || []).reduce((a, c) => a + (c.amount || 0), 0);
+  const paymentTotal = (inv.payments || []).reduce((a, p) => a + (p.amount || 0), 0);
+  const rest = amount - creditTotal - paymentTotal;
+  return { amount, creditTotal, paymentTotal, rest };
+}
 
 /* =====================================================
    FORM SUBMIT (CREATE / UPDATE)
@@ -609,7 +655,8 @@ form.addEventListener("submit", (e) => {
       id: Date.now(),
       paid: false,
       inOB: false,
-      payments: []
+      payments: [],
+      credits: []
     }, base);
     list.push(inv);
   }
@@ -635,8 +682,9 @@ function getStatus(inv) {
   const today = new Date();
   const due = inv.dueDate ? new Date(inv.dueDate) : null;
   const sk = inv.skontoDate ? new Date(inv.skontoDate) : null;
+  const { rest } = computeTotals(inv);
 
-  if (inv.paid) return "paid";
+  if (inv.paid || rest <= 0) return "paid";
   if (due && due < today) return "overdue";
   if (sk && sk >= today) return "skonto";
   return "open";
@@ -682,7 +730,7 @@ function updateUI() {
 
   if (list.length === 0) {
     tableBody.innerHTML =
-      '<tr><td colspan="11" class="empty-state">Noch keine Rechnungen 💖</td></tr>';
+      '<tr><td colspan="13" class="empty-state">Noch keine Rechnungen 💖</td></tr>';
     sumOpen.textContent = "0 €";
     sumOverdue.textContent = "0 €";
     sumSkonto.textContent = "0 €";
@@ -697,7 +745,7 @@ function updateUI() {
 function renderTable(list) {
   if (list.length === 0) {
     tableBody.innerHTML =
-      '<tr><td colspan="11" class="empty-state">Keine Rechnungen für den aktuellen Filter 🧐</td></tr>';
+      '<tr><td colspan="13" class="empty-state">Keine Rechnungen für den aktuellen Filter 🧐</td></tr>';
     return;
   }
 
@@ -705,6 +753,7 @@ function renderTable(list) {
 
   list.forEach(inv => {
     const status = getStatus(inv);
+    const { amount, creditTotal, rest } = computeTotals(inv);
 
     let rowClass = "row-open";
     let warn = "";
@@ -718,12 +767,16 @@ function renderTable(list) {
       rowClass = "row-skonto";
     }
 
-    if (inv.inOB && !inv.paid) {
+    if (inv.inOB && !inv.paid && rest > 0) {
       rowClass += " row-ob";
     }
 
+    if (creditTotal > 0) {
+      rowClass += " row-credit";
+    }
+
     const skAmount = inv.skontoPercent
-      ? (inv.amount * (inv.skontoPercent / 100)).toFixed(2)
+      ? (amount * (inv.skontoPercent / 100)).toFixed(2)
       : "-";
 
     const dot =
@@ -739,19 +792,22 @@ function renderTable(list) {
         <td>${dot}</td>
         <td>${inv.number}</td>
         <td>${inv.supplier}</td>
-        <td class="numeric">${inv.amount.toFixed(2)}</td>
+        <td class="numeric">${amount.toFixed(2)}</td>
+        <td class="numeric">${creditTotal > 0 ? creditTotal.toFixed(2) : "-"}</td>
+        <td class="numeric rest-cell">${rest.toFixed(2)}</td>
         <td class="numeric">${inv.skontoPercent || "-"}</td>
         <td class="numeric">${skAmount}</td>
         <td>${inv.skontoDate || "-"}</td>
         <td>${inv.dueDate}</td>
         <td>${warn} ${obLabel}</td>
         <td>
-          <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${inv.paid ? "checked" : ""}>
+          <input type="checkbox" data-id="${inv.id}" class="paidCheck" ${status === "paid" ? "checked" : ""}>
         </td>
         <td>
           <button class="btn small editBtn" data-id="${inv.id}">✏️</button>
           <button class="btn small payBtn" data-id="${inv.id}">💶</button>
           <button class="btn small obBtn ${inv.inOB ? "active" : ""}" data-id="${inv.id}">🟧 OB</button>
+          <button class="btn small creditBtn" data-id="${inv.id}">➖GS</button>
           <button class="btn small deleteBtn" data-id="${inv.id}">❌</button>
         </td>
       </tr>
@@ -763,7 +819,7 @@ function renderTable(list) {
 }
 
 /* =====================================================
-   ROW EVENTS (PAID / EDIT / DELETE / TEILZAHLUNG / OB)
+   ROW EVENTS (PAID / EDIT / DELETE / TEILZAHLUNG / OB / GS)
 ===================================================== */
 function attachRowEvents() {
   // Paid checkbox
@@ -773,7 +829,8 @@ function attachRowEvents() {
       const list = loadInvoices();
       const inv = list.find(a => a.id === id);
       if (!inv) return;
-      inv.paid = cb.checked;
+      const { rest } = computeTotals(inv);
+      inv.paid = cb.checked || rest <= 0;
       saveInvoices(list);
       updateUI();
     });
@@ -828,10 +885,17 @@ function attachRowEvents() {
       const list = loadInvoices();
       const inv = list.find(a => a.id === id);
       if (!inv) return;
-
       inv.inOB = !inv.inOB;
       saveInvoices(list);
       updateUI();
+    });
+  });
+
+  // ➖ Gutschrift
+  document.querySelectorAll(".creditBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      openCreditPopup(id);
     });
   });
 }
@@ -873,20 +937,25 @@ function renderSupplierDatalist(list) {
 
 function renderSupplierTotals(list) {
   if (!supplierFilter) {
-    // Normale Gesamtwerte anzeigen
     return;
   }
 
-  const filtered = list.filter(inv => inv.supplier === supplierFilter);
   const now = new Date();
+  const filtered = list.filter(inv => inv.supplier === supplierFilter);
+
   let open = 0, overdue = 0, skonto = 0;
 
   filtered.forEach(inv => {
-    if (!inv.paid) open += inv.amount;
-    if (!inv.paid && inv.dueDate && new Date(inv.dueDate) < now)
-      overdue += inv.amount;
-    if (!inv.paid && inv.skontoDate && new Date(inv.skontoDate) >= now)
-      skonto += inv.amount;
+    const { rest } = computeTotals(inv);
+    if (rest <= 0) return;
+
+    open += rest;
+
+    if (inv.dueDate && new Date(inv.dueDate) < now)
+      overdue += rest;
+
+    if (inv.skontoDate && new Date(inv.skontoDate) >= now)
+      skonto += rest;
   });
 
   sumOpen.textContent = open.toFixed(2) + " €";
@@ -902,11 +971,16 @@ function renderSummary(list) {
   const now = new Date();
 
   list.forEach(inv => {
-    if (!inv.paid) open += inv.amount;
-    if (!inv.paid && inv.dueDate && new Date(inv.dueDate) < now)
-      overdue += inv.amount;
-    if (!inv.paid && inv.skontoDate && new Date(inv.skontoDate) >= now)
-      skonto += inv.amount;
+    const { rest } = computeTotals(inv);
+    if (rest <= 0) return;
+
+    open += rest;
+
+    if (inv.dueDate && new Date(inv.dueDate) < now)
+      overdue += rest;
+
+    if (inv.skontoDate && new Date(inv.skontoDate) >= now)
+      skonto += rest;
   });
 
   if (!supplierFilter) {
@@ -937,11 +1011,13 @@ window.addEventListener("load", () => {
   const list = loadInvoices();
   const now = new Date();
 
-  const hasOverdue = list.some(inv =>
-    !inv.paid &&
-    inv.dueDate &&
-    new Date(inv.dueDate) < now
-  );
+  const hasOverdue = list.some(inv => {
+    const { rest } = computeTotals(inv);
+    return !inv.paid &&
+      rest > 0 &&
+      inv.dueDate &&
+      new Date(inv.dueDate) < now;
+  });
 
   if (hasOverdue) {
     alert("⚠️ Achtung!\nEs gibt überfällige Rechnungen!");
@@ -953,8 +1029,6 @@ window.addEventListener("load", () => {
 /* =====================================================
    TEILZAHLUNGEN – LOGIK
 ===================================================== */
-let currentPaymentInvoice = null;
-
 function openPaymentPopup(invoiceId) {
   currentPaymentInvoice = invoiceId;
   const list = loadInvoices();
@@ -1005,13 +1079,73 @@ document.getElementById("addPaymentBtn").addEventListener("click", () => {
     note
   });
 
-  // Restbetrag prüfen – wenn Summe der Teilzahlungen >= Betrag -> bezahlt
-  const paidSum = inv.payments.reduce((a, b) => a + b.amount, 0);
-  if (paidSum >= inv.amount) inv.paid = true;
+  const { rest } = computeTotals(inv);
+  if (rest <= 0) inv.paid = true;
 
   saveInvoices(list);
   updateUI();
   openPaymentPopup(currentPaymentInvoice);
+});
+
+/* =====================================================
+   GUTSCHRIFTEN – LOGIK
+===================================================== */
+function openCreditPopup(invoiceId) {
+  currentCreditInvoice = invoiceId;
+  const list = loadInvoices();
+  const inv = list.find(x => x.id === invoiceId);
+
+  if (!inv) return;
+  if (!inv.credits) inv.credits = [];
+
+  let html = "";
+  if (inv.credits.length === 0) {
+    html = "<p>Noch keine Gutschriften.</p>";
+  } else {
+    html = inv.credits.map(c => `
+      <div style="padding:8px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;">
+        <strong>${c.date}</strong> – ${c.amount.toFixed(2)} €
+        <br><small>${c.note || ""}</small>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("creditList").innerHTML = html;
+  document.getElementById("creditPopup").style.display = "flex";
+}
+
+document.getElementById("closeCreditPopup").addEventListener("click", () => {
+  document.getElementById("creditPopup").style.display = "none";
+});
+
+document.getElementById("addCreditBtn").addEventListener("click", () => {
+  const date = document.getElementById("creditDate").value;
+  const amount = parseFloat(document.getElementById("creditAmount").value);
+  const note = document.getElementById("creditNote").value;
+
+  if (!date || isNaN(amount) || amount <= 0) {
+    alert("Bitte Datum und Betrag eingeben.");
+    return;
+  }
+
+  const list = loadInvoices();
+  const inv = list.find(x => x.id === currentCreditInvoice);
+
+  if (!inv) return;
+  if (!inv.credits) inv.credits = [];
+
+  inv.credits.push({
+    date,
+    amount,
+    note
+  });
+
+  const { rest } = computeTotals(inv);
+  if (rest <= 0) inv.paid = true;
+
+  saveInvoices(list);
+  updateUI();
+  openCreditPopup(currentCreditInvoice);
 });
 </script>
 
