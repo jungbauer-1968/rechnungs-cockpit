@@ -1152,6 +1152,49 @@ document.getElementById("addCreditBtn").addEventListener("click", () => {
   updateUI();
   openCreditPopup(currentCreditInvoice);
 });
+ /* =====================================================
+   BACKUP EXPORT
+===================================================== */
+document.getElementById("exportData").addEventListener("click", () => {
+  const data = localStorage.getItem("cockpitInvoices") || "[]";
+
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cockpitBackup.json";
+  a.click();
+
+  URL.revokeObjectURL(url);
+  alert("Backup wurde erstellt 💾");
+});
+
+/* =====================================================
+   BACKUP IMPORT
+===================================================== */
+document.getElementById("importData").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+
+document.getElementById("importFile").addEventListener("change", function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    try {
+      const json = JSON.parse(event.target.result);
+      localStorage.setItem("cockpitInvoices", JSON.stringify(json));
+      alert("Backup importiert ✔\nBitte Seite neu laden!");
+      location.reload();
+    } catch (e) {
+      alert("Fehler: Datei ist keine gültige Backup-Datei ❌");
+    }
+  };
+  reader.readAsText(file);
+});
+ 
 </script>
 
 </body>
