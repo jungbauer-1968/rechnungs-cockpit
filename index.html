@@ -940,29 +940,26 @@ function renderSupplierDatalist(list) {
   supplierList.innerHTML = suppliers.map(s => `<option value="${s}"></option>`).join("");
 }
 
-function renderSupplierTotals(list) {
-  if (!supplierFilter) {
-    return;
-  }
-
+function renderSummary(list) {
+  // Gesamtsummen auch passend zur aktuellen Ansicht
   const now = new Date();
-  const filtered = list.filter(inv => inv.supplier === supplierFilter);
+  const view = getFilteredList(list); // <- genau wie Tabelle
 
   let open = 0, overdue = 0, skonto = 0;
 
-  filtered.forEach(inv => {
+  view.forEach(inv => {
+    if (inv.paid) return; // WICHTIG
     const { rest } = computeTotals(inv);
     if (rest <= 0) return;
 
+    const status = getStatus(inv);
+
     open += rest;
-
-    if (inv.dueDate && new Date(inv.dueDate) < now)
-      overdue += rest;
-
-    if (inv.skontoDate && new Date(inv.skontoDate) >= now)
-      skonto += rest;
+    if (status === "overdue") overdue += rest;
+    if (status === "skonto") skonto += rest;
   });
 
+  // egal ob Lieferant gewählt oder nicht: es soll das anzeigen, was du gerade siehst
   sumOpen.textContent = open.toFixed(2) + " €";
   sumOverdue.textContent = overdue.toFixed(2) + " €";
   sumSkonto.textContent = skonto.toFixed(2) + " €";
